@@ -27,13 +27,21 @@ jobs:
       - name: Generate Android folder
         run: flutter create . --platforms android --project-name soroush_bot_app
       
-      # 👇 این بخش جدید است: تغییر نام و فعالسازی HTTP
-      - name: Configure Android Manifest
+      # 👇 این بخش با پایتون فایل تنظیمات را ۱۰۰٪ اصلاح می‌کند
+      - name: Fix Android Manifest (HTTP & Name)
         run: |
-          # تغییر نام برنامه به Javad Bot
-          sed -i 's|android:label="soroush_bot_app"|android:label="Javad Bot"|g' android/app/src/main/AndroidManifest.xml
-          # اجازه دادن به پروتکل HTTP
-          sed -i 's|<application|<application android:usesCleartextTraffic="true"|' android/app/src/main/AndroidManifest.xml
+          python3 -c "
+          import os
+          manifest_path = 'android/app/src/main/AndroidManifest.xml'
+          if os.path.exists(manifest_path):
+              with open(manifest_path, 'r') as f:
+                  content = f.read()
+              if 'usesCleartextTraffic' not in content:
+                  content = content.replace('<application', '<application android:usesCleartextTraffic=\"true\"')
+              content = content.replace('android:label=\"soroush_bot_app\"', 'android:label=\"Javad Bot\"')
+              with open(manifest_path, 'w') as f:
+                  f.write(content)
+          "
 
       - name: Get dependencies
         run: flutter pub get
