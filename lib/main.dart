@@ -94,11 +94,16 @@ class _AppLoginScreenState extends State<AppLoginScreen> {
     setState(() => _isLoading = true);
     try {
       final res = await http.post(
-        Uri.parse('http://185.211.58.189/api/app/login'), // پورت حذف شد
+        Uri.parse('http://185.211.58.189:8000/api/app/login'), // پورت 8000
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({'username': _userController.text, 'password': _passController.text}),
       ).timeout(const Duration(seconds: 10));
       
+      // اگر سرور به جای JSON، صفحه HTML برگرداند
+      if (res.body.trim().startsWith('<')) {
+        throw Exception('سرور یک صفحه HTML برگرداند (احتمالا Nginx یا Apache روی پورت 8000 مزاحمت ایجاد کرده است).');
+      }
+
       final data = jsonDecode(res.body);
       if (data['status'] == 'success') {
         Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const DashboardScreen()));
@@ -106,8 +111,7 @@ class _AppLoginScreenState extends State<AppLoginScreen> {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(data['message'])));
       }
     } catch (e) {
-      // نمایش خطای دقیق سیستم
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('خطای شبکه: ${e.toString()}')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('خطا: ${e.toString()}')));
     }
     setState(() => _isLoading = false);
   }
@@ -213,10 +217,12 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
     setState(() => _isLoading = true);
     try {
       final res = await http.post(
-        Uri.parse('http://185.211.58.189/api/login/request'), // پورت حذف شد
+        Uri.parse('http://185.211.58.189:8000/api/login/request'), // پورت 8000
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({'phone': _phoneController.text}),
       ).timeout(const Duration(seconds: 10));
+      
+      if (res.body.trim().startsWith('<')) throw Exception('پاسخ نامعتبر از سرور (HTML)');
       
       final data = jsonDecode(res.body);
       if (data['status'] == 'success') {
@@ -226,7 +232,7 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(data['message'])));
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('خطای شبکه: ${e.toString()}')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('خطا: ${e.toString()}')));
     }
     setState(() => _isLoading = false);
   }
@@ -235,11 +241,13 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
     setState(() => _isLoading = true);
     try {
       final res = await http.post(
-        Uri.parse('http://185.211.58.189/api/login/verify'), // پورت حذف شد
+        Uri.parse('http://185.211.58.189:8000/api/login/verify'), // پورت 8000
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({'phone': _phoneController.text, 'code': _codeController.text, 'phone_code_hash': _hash}),
       ).timeout(const Duration(seconds: 10));
       
+      if (res.body.trim().startsWith('<')) throw Exception('پاسخ نامعتبر از سرور (HTML)');
+
       final data = jsonDecode(res.body);
       if (data['status'] == 'success') {
         Navigator.pop(context, _phoneController.text);
@@ -247,7 +255,7 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(data['message'])));
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('خطای شبکه: ${e.toString()}')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('خطا: ${e.toString()}')));
     }
     setState(() => _isLoading = false);
   }
@@ -338,7 +346,7 @@ class _SpamScreenState extends State<SpamScreen> {
   void _startSpam() async {
     try {
       final res = await http.post(
-        Uri.parse('http://185.211.58.189/api/task/start'), // پورت حذف شد
+        Uri.parse('http://185.211.58.189:8000/api/task/start'), // پورت 8000
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({
           "account_phone": widget.phone,
@@ -351,11 +359,13 @@ class _SpamScreenState extends State<SpamScreen> {
         }),
       ).timeout(const Duration(seconds: 10));
       
+      if (res.body.trim().startsWith('<')) throw Exception('پاسخ نامعتبر از سرور (HTML)');
+
       final data = jsonDecode(res.body);
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(data['message'])));
       if(data['status'] == 'success') Navigator.pop(context);
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('خطای شبکه: ${e.toString()}')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('خطا: ${e.toString()}')));
     }
   }
 
@@ -412,7 +422,8 @@ class _TasksScreenState extends State<TasksScreen> {
 
   Future<void> _fetchTasks() async {
     try {
-      final res = await http.get(Uri.parse('http://185.211.58.189/api/tasks')).timeout(const Duration(seconds: 10)); // پورت حذف شد
+      final res = await http.get(Uri.parse('http://185.211.58.189:8000/api/tasks')).timeout(const Duration(seconds: 10)); // پورت 8000
+      if (res.body.trim().startsWith('<')) throw Exception('HTML response');
       final data = jsonDecode(res.body);
       setState(() => tasks = data['tasks']);
     } catch (e) { print(e); }
@@ -435,7 +446,7 @@ class _TasksScreenState extends State<TasksScreen> {
                     trailing: IconButton(
                       icon: const Icon(Icons.delete, color: Colors.redAccent),
                       onPressed: () async {
-                        await http.post(Uri.parse('http://185.211.58.189/api/task/stop/${t['id']}')).timeout(const Duration(seconds: 10)); // پورت حذف شد
+                        await http.post(Uri.parse('http://185.211.58.189:8000/api/task/stop/${t['id']}')).timeout(const Duration(seconds: 10)); // پورت 8000
                         _fetchTasks();
                       },
                     ),
