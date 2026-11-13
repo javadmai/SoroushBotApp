@@ -22,15 +22,51 @@ class MyApp extends StatelessWidget {
         brightness: Brightness.dark,
         scaffoldBackgroundColor: const Color(0xFF0A0E17),
         primaryColor: const Color(0xFF00FFAA),
-        appBarTheme: const AppBarTheme(backgroundColor: Colors.transparent, elevation: 0, centerTitle: true),
+        textTheme: const TextTheme(
+          bodyLarge: TextStyle(color: Colors.white),
+          bodyMedium: TextStyle(color: Colors.white),
+          titleMedium: TextStyle(color: Colors.white),
+        ),
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Colors.transparent, 
+          elevation: 0, 
+          centerTitle: true,
+          titleTextStyle: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+          iconTheme: IconThemeData(color: Colors.white),
+        ),
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
-          fillColor: const Color(0xFF131A22),
+          fillColor: const Color(0xFF131A22).withOpacity(0.8), // نیمه شفاف برای دیده شدن پس زمینه
+          labelStyle: const TextStyle(color: Colors.grey),
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
           focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF00FFAA))),
         ),
       ),
       home: const ServerLoginScreen(),
+    );
+  }
+}
+
+// ==================== ویجت پس‌زمینه هکری ====================
+class HackerBackground extends StatelessWidget {
+  final Widget child;
+  const HackerBackground({super.key, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        // تصویر پس زمینه ماتریکس
+        Positioned.fill(
+          child: Image.network(
+            'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?q=80&w=1000&auto=format&fit=crop',
+            fit: BoxFit.cover,
+            color: Colors.black.withOpacity(0.7), // لایه تیره برای خوانایی
+            colorBlendMode: BlendMode.darken,
+          ),
+        ),
+        child,
+      ],
     );
   }
 }
@@ -49,29 +85,31 @@ class _ServerLoginScreenState extends State<ServerLoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.dns, size: 80, color: Color(0xFF00FFAA)),
-              const SizedBox(height: 30),
-              const Text('اتصال به سرور', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 20),
-              TextField(controller: _ipController, decoration: const InputDecoration(labelText: 'آی‌پی سرور')),
-              const SizedBox(height: 16),
-              TextField(controller: _rootController, decoration: const InputDecoration(labelText: 'نام کاربری سرور')),
-              const SizedBox(height: 30),
-              SizedBox(
-                width: double.infinity, height: 50,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF00FFAA)),
-                  onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const AppLoginScreen())),
-                  child: const Text('اتصال', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+      body: HackerBackground(
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.dns, size: 80, color: Color(0xFF00FFAA)),
+                const SizedBox(height: 30),
+                const Text('اتصال به سرور', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 20),
+                TextField(controller: _ipController, style: const TextStyle(color: Colors.white), decoration: const InputDecoration(labelText: 'آی‌پی سرور')),
+                const SizedBox(height: 16),
+                TextField(controller: _rootController, style: const TextStyle(color: Colors.white), decoration: const InputDecoration(labelText: 'نام کاربری سرور')),
+                const SizedBox(height: 30),
+                SizedBox(
+                  width: double.infinity, height: 50,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF00FFAA)),
+                    onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const AppLoginScreen())),
+                    child: const Text('اتصال', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -116,26 +154,28 @@ class _AppLoginScreenState extends State<AppLoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            children: [
-              const Text('ورود به پنل مدیریت', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 30),
-              TextField(controller: _userController, decoration: const InputDecoration(labelText: 'نام کاربری')),
-              const SizedBox(height: 16),
-              TextField(controller: _passController, obscureText: true, decoration: const InputDecoration(labelText: 'رمز عبور')),
-              const SizedBox(height: 30),
-              SizedBox(
-                width: double.infinity, height: 50,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF00FFAA)),
-                  onPressed: _isLoading ? null : _login,
-                  child: _isLoading ? const CircularProgressIndicator(color: Colors.black) : const Text('ورود', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+      body: HackerBackground(
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              children: [
+                const Text('ورود به پنل مدیریت', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 30),
+                TextField(controller: _userController, style: const TextStyle(color: Colors.white), decoration: const InputDecoration(labelText: 'نام کاربری')),
+                const SizedBox(height: 16),
+                TextField(controller: _passController, style: const TextStyle(color: Colors.white), obscureText: true, decoration: const InputDecoration(labelText: 'رمز عبور')),
+                const SizedBox(height: 30),
+                SizedBox(
+                  width: double.infinity, height: 50,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF00FFAA)),
+                    onPressed: _isLoading ? null : _login,
+                    child: _isLoading ? const CircularProgressIndicator(color: Colors.black) : const Text('ورود', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -143,7 +183,7 @@ class _AppLoginScreenState extends State<AppLoginScreen> {
   }
 }
 
-// ==================== ۳. داشبورد اصلی (طراحی جدید) ====================
+// ==================== ۳. داشبورد اصلی ====================
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
   @override
@@ -151,67 +191,76 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  List<String> accounts = []; 
+  // ساختار تغییر کرد: لیستی از دیکشنری‌ها شامل شماره و اسم
+  List<Map<String, String>> accounts = []; 
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBodyBehindAppBar: true, // اجازه دیده شدن پس زمینه در بالای صفحه
       appBar: AppBar(
         title: const Text('Javad Bot', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 24, color: Colors.white)),
+        backgroundColor: Colors.black45,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // کارت‌های آماری
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      body: HackerBackground(
+        child: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildStatCard('43883', 'Total sent', Icons.send, Colors.blue),
-                _buildStatCard('1', 'Running', Icons.all_inclusive, Colors.cyan),
-                _buildStatCard('${accounts.length}', 'Accounts', Icons.sync, Colors.lightBlue),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    _buildStatCard('43883', 'Total sent', Icons.send, Colors.blue),
+                    _buildStatCard('1', 'Running', Icons.all_inclusive, Colors.cyan),
+                    _buildStatCard('${accounts.length}', 'Accounts', Icons.sync, Colors.lightBlue),
+                  ],
+                ),
+                const SizedBox(height: 30),
+                const Text('اکانت‌های من', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+                const SizedBox(height: 16),
+                accounts.isEmpty 
+                    ? const Center(child: Text('هیچ اکانتی اضافه نشده است.', style: TextStyle(color: Colors.grey)))
+                    : ListView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: accounts.length,
+                        itemBuilder: (context, index) {
+                          final acc = accounts[index];
+                          return Card(
+                            color: const Color(0xFF131A22).withOpacity(0.9), // نیمه شفاف
+                            margin: const EdgeInsets.only(bottom: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: BorderSide(color: Colors.green.withOpacity(0.3))),
+                            child: ListTile(
+                              leading: const CircleAvatar(backgroundColor: Colors.grey, child: Icon(Icons.person, color: Colors.white)),
+                              title: Text(acc['name']!, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)), // نمایش اسم
+                              subtitle: Row(children: [
+                                const Icon(Icons.circle, color: Colors.greenAccent, size: 10),
+                                const SizedBox(width: 5),
+                                Text(acc['phone']!, style: const TextStyle(color: Colors.greenAccent, fontSize: 12)), // نمایش شماره در زیر اسم
+                              ]),
+                              trailing: const Icon(Icons.arrow_back_ios, size: 16, color: Colors.grey),
+                              onTap: () {
+                                // ارسال شماره به عنوان شناسه به بک اند
+                                Navigator.push(context, MaterialPageRoute(builder: (context) => AccountDetailScreen(phone: acc['phone']!)));
+                              },
+                            ),
+                          );
+                        },
+                      ),
               ],
             ),
-            const SizedBox(height: 30),
-            const Text('اکانت‌های من', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
-            const SizedBox(height: 16),
-            accounts.isEmpty 
-                ? const Center(child: Text('هیچ اکانتی اضافه نشده است.'))
-                : ListView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: accounts.length,
-                    itemBuilder: (context, index) {
-                      return Card(
-                        color: const Color(0xFF131A22),
-                        margin: const EdgeInsets.only(bottom: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: BorderSide(color: Colors.green.withOpacity(0.2))),
-                        child: ListTile(
-                          leading: const CircleAvatar(backgroundColor: Colors.grey, child: Icon(Icons.person, color: Colors.white)),
-                          title: Text(accounts[index], style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                          subtitle: const Row(children: [
-                            Icon(Icons.circle, color: Colors.greenAccent, size: 10),
-                            SizedBox(width: 5),
-                            Text('در حال اجرا', style: TextStyle(color: Colors.greenAccent)),
-                          ]),
-                          trailing: const Icon(Icons.arrow_back_ios, size: 16, color: Colors.grey),
-                          onTap: () {
-                            Navigator.push(context, MaterialPageRoute(builder: (context) => AccountDetailScreen(phone: accounts[index])));
-                          },
-                        ),
-                      );
-                    },
-                  ),
-          ],
+          ),
         ),
       ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: Colors.cyanAccent,
         onPressed: () async {
-          final newPhone = await Navigator.push(context, MaterialPageRoute(builder: (context) => const AddAccountScreen()));
-          if (newPhone != null) {
-            setState(() { accounts.add(newPhone); });
+          // دریافت دیکشنری شامل اسم و شماره
+          final newAccount = await Navigator.push<Map<String, String>>(context, MaterialPageRoute(builder: (context) => const AddAccountScreen()));
+          if (newAccount != null) {
+            setState(() { accounts.add(newAccount); });
           }
         },
         child: const Icon(Icons.add, color: Colors.black, size: 30),
@@ -224,7 +273,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       width: 105,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFF131A22),
+        color: const Color(0xFF131A22).withOpacity(0.8), // نیمه شفاف
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.grey.shade800),
         boxShadow: [BoxShadow(color: iconColor.withOpacity(0.1), blurRadius: 10)],
@@ -294,7 +343,11 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
 
       final data = jsonDecode(res.body);
       if (data['status'] == 'success') {
-        Navigator.pop(context, _phoneController.text);
+        // بازگرداندن هم شماره و هم اسم استخراج شده
+        Navigator.pop(context, {
+          'phone': _phoneController.text,
+          'name': data['name'] ?? 'بدون نام'
+        });
       } else {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(data['message'])));
       }
@@ -307,26 +360,31 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('افزودن اکانت')),
-      body: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          children: [
-            TextField(controller: _phoneController, keyboardType: TextInputType.phone, decoration: const InputDecoration(labelText: 'شماره تلفن با 0 (مثال: 09123456789)')),
-            if (_isOtpSent) ...[
-              const SizedBox(height: 16),
-              TextField(controller: _codeController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'کد تایید')),
-            ],
-            const SizedBox(height: 30),
-            SizedBox(
-              width: double.infinity, height: 50,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF00FFAA)),
-                onPressed: _isLoading ? null : (_isOtpSent ? _handleVerify : _handleRequest),
-                child: _isLoading ? const CircularProgressIndicator(color: Colors.black) : Text(_isOtpSent ? 'تایید و ورود' : 'درخواست کد', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
-              ),
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(title: const Text('افزودن اکانت'), backgroundColor: Colors.black45),
+      body: HackerBackground(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              children: [
+                TextField(controller: _phoneController, style: const TextStyle(color: Colors.white), keyboardType: TextInputType.phone, decoration: const InputDecoration(labelText: 'شماره تلفن با 0 (مثال: 09123456789)')),
+                if (_isOtpSent) ...[
+                  const SizedBox(height: 16),
+                  TextField(controller: _codeController, style: const TextStyle(color: Colors.white), keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'کد تایید')),
+                ],
+                const SizedBox(height: 30),
+                SizedBox(
+                  width: double.infinity, height: 50,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF00FFAA)),
+                    onPressed: _isLoading ? null : (_isOtpSent ? _handleVerify : _handleRequest),
+                    child: _isLoading ? const CircularProgressIndicator(color: Colors.black) : Text(_isOtpSent ? 'تایید و ورود' : 'درخواست کد', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -341,18 +399,23 @@ class AccountDetailScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(phone)),
-      body: GridView.count(
-        crossAxisCount: 2,
-        padding: const EdgeInsets.all(16),
-        crossAxisSpacing: 16,
-        mainAxisSpacing: 16,
-        children: [
-          _buildBtn(context, 'اسپم', Icons.email, SpamScreen(phone: phone)),
-          _buildBtn(context, 'تسک‌ها', Icons.settings, const TasksScreen()),
-          _buildBtn(context, 'ریپلای', Icons.chat, const Center(child: Text('به زودی...'))),
-          _buildBtn(context, 'فوروارد', Icons.forward, ForwardScreen(phone: phone)),
-        ],
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(title: Text(phone), backgroundColor: Colors.black45),
+      body: HackerBackground(
+        child: SafeArea(
+          child: GridView.count(
+            crossAxisCount: 2,
+            padding: const EdgeInsets.all(16),
+            crossAxisSpacing: 16,
+            mainAxisSpacing: 16,
+            children: [
+              _buildBtn(context, 'اسپم', Icons.email, SpamScreen(phone: phone)),
+              _buildBtn(context, 'تسک‌ها', Icons.settings, const TasksScreen()),
+              _buildBtn(context, 'ریپلای', Icons.chat, const Center(child: Text('به زودی...', style: TextStyle(color: Colors.white)))),
+              _buildBtn(context, 'فوروارد', Icons.forward, ForwardScreen(phone: phone)),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -361,17 +424,17 @@ class AccountDetailScreen extends StatelessWidget {
     return InkWell(
       onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => page)),
       child: Container(
-        decoration: BoxDecoration(color: const Color(0xFF131A22), borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.green.withOpacity(0.3))),
+        decoration: BoxDecoration(color: const Color(0xFF131A22).withOpacity(0.85), borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.green.withOpacity(0.3))),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: [Icon(icon, size: 40, color: Colors.white), const SizedBox(height: 12), Text(title, style: const TextStyle(fontWeight: FontWeight.bold))],
+          children: [Icon(icon, size: 40, color: Colors.white), const SizedBox(height: 12), Text(title, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white))],
         ),
       ),
     );
   }
 }
 
-// ==================== ۶. صفحه اسپم (با لیست گپ‌ها) ====================
+// ==================== ۶. صفحه اسپم ====================
 class SpamScreen extends StatefulWidget {
   final String phone;
   const SpamScreen({super.key, required this.phone});
@@ -436,45 +499,52 @@ class _SpamScreenState extends State<SpamScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('تنظیم اسپم')),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            TextField(controller: _text, maxLines: 4, decoration: const InputDecoration(labelText: 'متن اسپم')),
-            const SizedBox(height: 16),
-            _isLoadingChats 
-              ? const Center(child: CircularProgressIndicator())
-              : DropdownButtonFormField<String>(
-                  decoration: const InputDecoration(labelText: 'انتخاب گروه مقصد'),
-                  items: _chats.map((c) => DropdownMenuItem<String>(value: c['id'].toString(), child: Text(c['title']))).toList(),
-                  onChanged: (val) => setState(() => _selectedChat = val),
-                ),
-            const SizedBox(height: 16),
-            Row(
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(title: const Text('تنظیم اسپم'), backgroundColor: Colors.black45),
+      body: HackerBackground(
+        child: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Column(
               children: [
-                Expanded(child: TextField(controller: _count, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'تعداد (0 = بی‌نهایت)'))),
-                const SizedBox(width: 16),
-                Expanded(child: TextField(controller: _speed, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'سرعت (میلی‌ثانیه)'))),
+                TextField(controller: _text, style: const TextStyle(color: Colors.white), maxLines: 4, decoration: const InputDecoration(labelText: 'متن اسپم')),
+                const SizedBox(height: 16),
+                _isLoadingChats 
+                  ? const Center(child: CircularProgressIndicator())
+                  : DropdownButtonFormField<String>(
+                      dropdownColor: const Color(0xFF131A22),
+                      style: const TextStyle(color: Colors.white, fontSize: 16),
+                      decoration: const InputDecoration(labelText: 'انتخاب گروه مقصد'),
+                      items: _chats.map((c) => DropdownMenuItem<String>(value: c['id'].toString(), child: Text(c['title']))).toList(),
+                      onChanged: (val) => setState(() => _selectedChat = val),
+                    ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(child: TextField(controller: _count, style: const TextStyle(color: Colors.white), keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'تعداد (0 = بی‌نهایت)'))),
+                    const SizedBox(width: 16),
+                    Expanded(child: TextField(controller: _speed, style: const TextStyle(color: Colors.white), keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'سرعت (میلی‌ثانیه)'))),
+                  ],
+                ),
+                const SizedBox(height: 30),
+                SizedBox(
+                  width: double.infinity, height: 50,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF00FFAA)),
+                    onPressed: _startSpam,
+                    child: const Text('شروع اسپم', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+                  ),
+                ),
               ],
             ),
-            const SizedBox(height: 30),
-            SizedBox(
-              width: double.infinity, height: 50,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF00FFAA)),
-                onPressed: _startSpam,
-                child: const Text('شروع اسپم', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
   }
 }
 
-// ==================== ۷. صفحه فوروارد (دو مرحله‌ای) ====================
+// ==================== ۷. صفحه فوروارد ====================
 class ForwardScreen extends StatefulWidget {
   final String phone;
   const ForwardScreen({super.key, required this.phone});
@@ -541,10 +611,15 @@ class _ForwardScreenState extends State<ForwardScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('فوروارد - مرحله $_step')),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: _step == 1 ? _buildStep1() : _buildStep2(),
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(title: Text('فوروارد - مرحله $_step'), backgroundColor: Colors.black45),
+      body: HackerBackground(
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: _step == 1 ? _buildStep1() : _buildStep2(),
+          ),
+        ),
       ),
     );
   }
@@ -552,9 +627,11 @@ class _ForwardScreenState extends State<ForwardScreen> {
   Widget _buildStep1() {
     return Column(
       children: [
-        TextField(controller: _linkController, decoration: const InputDecoration(labelText: 'لینک پیام برای فوروارد')),
+        TextField(controller: _linkController, style: const TextStyle(color: Colors.white), decoration: const InputDecoration(labelText: 'لینک پیام برای فوروارد (مثال: https://splus.ir/c/25384148/3)')),
         const SizedBox(height: 16),
         _isLoadingChats ? const Center(child: CircularProgressIndicator()) : DropdownButtonFormField<String>(
+          dropdownColor: const Color(0xFF131A22),
+          style: const TextStyle(color: Colors.white, fontSize: 16),
           decoration: const InputDecoration(labelText: 'گپ مبدا را انتخاب کنید'),
           items: _chats.map((c) => DropdownMenuItem<String>(value: c['id'].toString(), child: Text(c['title']))).toList(),
           onChanged: (val) => setState(() => _sourceChat = val),
@@ -576,6 +653,8 @@ class _ForwardScreenState extends State<ForwardScreen> {
     return Column(
       children: [
         DropdownButtonFormField<String>(
+          dropdownColor: const Color(0xFF131A22),
+          style: const TextStyle(color: Colors.white, fontSize: 16),
           decoration: const InputDecoration(labelText: 'گپ مقصد را انتخاب کنید'),
           items: _chats.map((c) => DropdownMenuItem<String>(value: c['id'].toString(), child: Text(c['title']))).toList(),
           onChanged: (val) => setState(() => _targetChat = val),
@@ -583,9 +662,9 @@ class _ForwardScreenState extends State<ForwardScreen> {
         const SizedBox(height: 16),
         Row(
           children: [
-            Expanded(child: TextField(controller: _count, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'تعداد (0 = بی‌نهایت)'))),
+            Expanded(child: TextField(controller: _count, style: const TextStyle(color: Colors.white), keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'تعداد (0 = بی‌نهایت)'))),
             const SizedBox(width: 16),
-            Expanded(child: TextField(controller: _speed, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'سرعت (میلی‌ثانیه)'))),
+            Expanded(child: TextField(controller: _speed, style: const TextStyle(color: Colors.white), keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'سرعت (میلی‌ثانیه)'))),
           ],
         ),
         const Spacer(),
@@ -629,31 +708,33 @@ class _TasksScreenState extends State<TasksScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('تسک‌های فعال')),
-      body: tasks.isEmpty 
-          ? const Center(child: Text('هیچ تسکی در حال اجرا نیست'))
-          : ListView.builder(
-              itemCount: tasks.length,
-              itemBuilder: (context, i) {
-                final t = tasks[i];
-                return Card(
-                  color: const Color(0xFF131A22),
-                  child: ListTile(
-                    title: Text('${t['type']} - ${t['account']}'),
-                    trailing: IconButton(
-                      icon: const Icon(Icons.delete, color: Colors.redAccent),
-                      onPressed: () async {
-                        await http.post(Uri.parse('$SERVER_URL/api/task/stop/${t['id']}')).timeout(const Duration(seconds: 10));
-                        _fetchChats(); // refresh
-                        _fetchTasks();
-                      },
-                    ),
-                  ),
-                );
-              },
-            ),
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(title: const Text('تسک‌های فعال'), backgroundColor: Colors.black45),
+      body: HackerBackground(
+        child: SafeArea(
+          child: tasks.isEmpty 
+              ? const Center(child: Text('هیچ تسکی در حال اجرا نیست', style: TextStyle(color: Colors.white)))
+              : ListView.builder(
+                  itemCount: tasks.length,
+                  itemBuilder: (context, i) {
+                    final t = tasks[i];
+                    return Card(
+                      color: const Color(0xFF131A22).withOpacity(0.9),
+                      child: ListTile(
+                        title: Text('${t['type']} - ${t['account']}', style: const TextStyle(color: Colors.white)),
+                        trailing: IconButton(
+                          icon: const Icon(Icons.delete, color: Colors.redAccent),
+                          onPressed: () async {
+                            await http.post(Uri.parse('$SERVER_URL/api/task/stop/${t['id']}')).timeout(const Duration(seconds: 10));
+                            _fetchTasks();
+                          },
+                        ),
+                      ),
+                    );
+                  },
+                ),
+        ),
+      ),
     );
   }
-  
-  void _fetchChats() {} // dummy function for structure
 }
