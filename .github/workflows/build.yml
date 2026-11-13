@@ -29,20 +29,19 @@ jobs:
       
       - name: Fix Android Manifest (HTTP & Name)
         run: |
-          python3 -c "
+          python3 - << 'EOF'
           import os
           manifest_path = 'android/app/src/main/AndroidManifest.xml'
           if os.path.exists(manifest_path):
               with open(manifest_path, 'r') as f:
                   content = f.read()
               if 'usesCleartextTraffic' not in content:
-                  content = content.replace('<application', '<application android:usesCleartextTraffic=\"true\"')
-              content = content.replace('android:label=\"soroush_bot_app\"', 'android:label=\"Javad Bot\"')
+                  content = content.replace('<application', '<application android:usesCleartextTraffic="true"')
+              content = content.replace('android:label="soroush_bot_app"', 'android:label="Javad Bot"')
               with open(manifest_path, 'w') as f:
                   f.write(content)
-          "
-          
-      # این بخش جدید لاگ می‌دهد تا مطمئن شویم تغییرات اعمال شده
+          EOF
+
       - name: Print Manifest for Debugging
         run: cat android/app/src/main/AndroidManifest.xml
 
