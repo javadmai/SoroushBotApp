@@ -17,25 +17,33 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
-      
+
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.10.6'
           channel: 'stable'
-          
+
       - name: Generate Android folder
         run: flutter create . --platforms android --project-name soroush_bot_app
-        
+      
+      # 👇 این بخش جدید است: تغییر نام و فعالسازی HTTP
+      - name: Configure Android Manifest
+        run: |
+          # تغییر نام برنامه به Javad Bot
+          sed -i 's|android:label="soroush_bot_app"|android:label="Javad Bot"|g' android/app/src/main/AndroidManifest.xml
+          # اجازه دادن به پروتکل HTTP
+          sed -i 's|<application|<application android:usesCleartextTraffic="true"|' android/app/src/main/AndroidManifest.xml
+
       - name: Get dependencies
         run: flutter pub get
-        
+
       - name: Generate App Icons
         run: dart run flutter_launcher_icons
-        
+
       - name: Build APK
         run: flutter build apk --release
-        
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
