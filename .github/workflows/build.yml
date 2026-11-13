@@ -27,7 +27,6 @@ jobs:
       - name: Generate Android folder
         run: flutter create . --platforms android --project-name soroush_bot_app
       
-      # 👇 این بخش با پایتون فایل تنظیمات را ۱۰۰٪ اصلاح می‌کند
       - name: Fix Android Manifest (HTTP & Name)
         run: |
           python3 -c "
@@ -42,6 +41,10 @@ jobs:
               with open(manifest_path, 'w') as f:
                   f.write(content)
           "
+          
+      # این بخش جدید لاگ می‌دهد تا مطمئن شویم تغییرات اعمال شده
+      - name: Print Manifest for Debugging
+        run: cat android/app/src/main/AndroidManifest.xml
 
       - name: Get dependencies
         run: flutter pub get
