@@ -1,15 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'dart:io'; // برای HttpOverrides
 
-void main() => runApp(const MyApp());
+void main() {
+  HttpOverrides.global = null; // اجازه دادن به HTTP
+  runApp(const MyApp());
+}
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Soroush Bot',
+      title: 'Javad Bot',
       debugShowCheckedModeBanner: false,
       builder: (context, child) => Directionality(textDirection: TextDirection.rtl, child: child!),
       theme: ThemeData(
@@ -90,10 +94,11 @@ class _AppLoginScreenState extends State<AppLoginScreen> {
     setState(() => _isLoading = true);
     try {
       final res = await http.post(
-        Uri.parse('http://185.211.58.189:8000/api/app/login'),
+        Uri.parse('http://185.211.58.189/api/app/login'), // پورت حذف شد
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({'username': _userController.text, 'password': _passController.text}),
-      );
+      ).timeout(const Duration(seconds: 10));
+      
       final data = jsonDecode(res.body);
       if (data['status'] == 'success') {
         Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const DashboardScreen()));
@@ -101,7 +106,8 @@ class _AppLoginScreenState extends State<AppLoginScreen> {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(data['message'])));
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('خطا در اتصال به سرور')));
+      // نمایش خطای دقیق سیستم
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('خطای شبکه: ${e.toString()}')));
     }
     setState(() => _isLoading = false);
   }
@@ -144,12 +150,12 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  List<String> accounts = []; // شماره اکانت‌های اضافه شده
+  List<String> accounts = []; 
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('RP Bot', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white))),
+      appBar: AppBar(title: const Text('Javad Bot', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white))),
       body: accounts.isEmpty 
           ? const Center(child: Text('هیچ اکانتی وجود ندارد. + را بزنید'))
           : ListView.builder(
@@ -207,10 +213,11 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
     setState(() => _isLoading = true);
     try {
       final res = await http.post(
-        Uri.parse('http://185.211.58.189:8000/api/login/request'),
+        Uri.parse('http://185.211.58.189/api/login/request'), // پورت حذف شد
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({'phone': _phoneController.text}),
-      );
+      ).timeout(const Duration(seconds: 10));
+      
       final data = jsonDecode(res.body);
       if (data['status'] == 'success') {
         setState(() { _isOtpSent = true; _hash = data['hash']; });
@@ -219,7 +226,7 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(data['message'])));
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('خطا در اتصال')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('خطای شبکه: ${e.toString()}')));
     }
     setState(() => _isLoading = false);
   }
@@ -228,18 +235,19 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
     setState(() => _isLoading = true);
     try {
       final res = await http.post(
-        Uri.parse('http://185.211.58.189:8000/api/login/verify'),
+        Uri.parse('http://185.211.58.189/api/login/verify'), // پورت حذف شد
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({'phone': _phoneController.text, 'code': _codeController.text, 'phone_code_hash': _hash}),
-      );
+      ).timeout(const Duration(seconds: 10));
+      
       final data = jsonDecode(res.body);
       if (data['status'] == 'success') {
-        Navigator.pop(context, _phoneController.text); // برگشت به داشبورد با شماره جدید
+        Navigator.pop(context, _phoneController.text);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(data['message'])));
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('خطا در اتصال')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('خطای شبکه: ${e.toString()}')));
     }
     setState(() => _isLoading = false);
   }
@@ -330,7 +338,7 @@ class _SpamScreenState extends State<SpamScreen> {
   void _startSpam() async {
     try {
       final res = await http.post(
-        Uri.parse('http://185.211.58.189:8000/api/task/start'),
+        Uri.parse('http://185.211.58.189/api/task/start'), // پورت حذف شد
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({
           "account_phone": widget.phone,
@@ -341,12 +349,13 @@ class _SpamScreenState extends State<SpamScreen> {
           "count": int.parse(_count.text),
           "speed": int.parse(_speed.text)
         }),
-      );
+      ).timeout(const Duration(seconds: 10));
+      
       final data = jsonDecode(res.body);
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(data['message'])));
       if(data['status'] == 'success') Navigator.pop(context);
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('خطا در ارتباط با سرور')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('خطای شبکه: ${e.toString()}')));
     }
   }
 
@@ -364,8 +373,7 @@ class _SpamScreenState extends State<SpamScreen> {
             const SizedBox(height: 16),
             Row(
               children: [
-                Expanded(child: TextField(controller: _count, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'تعداد')),
-                ),
+                Expanded(child: TextField(controller: _count, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'تعداد'))),
                 const SizedBox(width: 16),
                 Expanded(child: TextField(controller: _speed, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'سرعت (ms)'))),
               ],
@@ -404,7 +412,7 @@ class _TasksScreenState extends State<TasksScreen> {
 
   Future<void> _fetchTasks() async {
     try {
-      final res = await http.get(Uri.parse('http://185.211.58.189:8000/api/tasks'));
+      final res = await http.get(Uri.parse('http://185.211.58.189/api/tasks')).timeout(const Duration(seconds: 10)); // پورت حذف شد
       final data = jsonDecode(res.body);
       setState(() => tasks = data['tasks']);
     } catch (e) { print(e); }
@@ -427,7 +435,7 @@ class _TasksScreenState extends State<TasksScreen> {
                     trailing: IconButton(
                       icon: const Icon(Icons.delete, color: Colors.redAccent),
                       onPressed: () async {
-                        await http.post(Uri.parse('http://185.211.58.189:8000/api/task/stop/${t['id']}'));
+                        await http.post(Uri.parse('http://185.211.58.189/api/task/stop/${t['id']}')).timeout(const Duration(seconds: 10)); // پورت حذف شد
                         _fetchTasks();
                       },
                     ),
