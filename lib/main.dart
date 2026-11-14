@@ -48,7 +48,7 @@ class MyApp extends StatelessWidget {
   }
 }
 
-// ==================== ویجت پس‌زمینه (عکس شما) ====================
+// ==================== ویجت پس‌زمینه ====================
 class CustomBackground extends StatelessWidget {
   final Widget child;
   const CustomBackground({super.key, required this.child});
@@ -59,19 +59,18 @@ class CustomBackground extends StatelessWidget {
       children: [
         Positioned.fill(
           child: Image.asset(
-            'assets/bg.png', // مسیر عکس آپلود شده
+            'assets/bg.png',
             fit: BoxFit.cover,
           ),
         ),
         Positioned.fill(
-          child: Container(color: Colors.black.withOpacity(0.4)), // لایه تیره برای خوانایی متن
+          child: Container(color: Colors.black.withOpacity(0.4)), // لایه تیره
         ),
         child,
       ],
     );
   }
 }
-// =========================================================
 
 // ==================== ۱. لاگین سرور ====================
 class ServerLoginScreen extends StatefulWidget {
@@ -363,12 +362,12 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
       
       final data = jsonDecode(res.body);
       if (data['status'] == 'success') {
+        // ✅ اصلاح باگ نوع داده‌ها (Type Error) در اینجا انجام شد
         Navigator.pop(context, {
-          'phone': _phoneController.text,
-          'name': data['name'] ?? 'بدون نام'
+          'phone': _phoneController.text.toString(),
+          'name': (data['name'] ?? 'بدون نام').toString(),
         });
       } else {
-        // نمایش دقیق خطای سرور (مثلا خطای 2FA یا ذخیره سشن)
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text(data['message']),
           duration: const Duration(seconds: 5),
