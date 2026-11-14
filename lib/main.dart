@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:io';
+import 'dart:async';
+import 'dart:math';
 
 void main() {
   HttpOverrides.global = null;
@@ -20,7 +22,7 @@ class MyApp extends StatelessWidget {
       builder: (context, child) => Directionality(textDirection: TextDirection.rtl, child: child!),
       theme: ThemeData(
         brightness: Brightness.dark,
-        scaffoldBackgroundColor: const Color(0xFF0A0E17),
+        scaffoldBackgroundColor: Colors.transparent, // پس زمینه رو به ویجت Matrix می‌سپاریم
         primaryColor: const Color(0xFF00FFAA),
         textTheme: const TextTheme(
           bodyLarge: TextStyle(color: Colors.white),
@@ -28,7 +30,7 @@ class MyApp extends StatelessWidget {
           titleMedium: TextStyle(color: Colors.white),
         ),
         appBarTheme: const AppBarTheme(
-          backgroundColor: Colors.transparent, 
+          backgroundColor: Colors.black87, 
           elevation: 0, 
           centerTitle: true,
           titleTextStyle: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
@@ -36,7 +38,7 @@ class MyApp extends StatelessWidget {
         ),
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
-          fillColor: const Color(0xFF131A22).withOpacity(0.8), // نیمه شفاف برای دیده شدن پس زمینه
+          fillColor: const Color(0xFF131A22).withOpacity(0.9), 
           labelStyle: const TextStyle(color: Colors.grey),
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
           focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF00FFAA))),
@@ -47,29 +49,55 @@ class MyApp extends StatelessWidget {
   }
 }
 
-// ==================== ویجت پس‌زمینه هکری ====================
-class HackerBackground extends StatelessWidget {
+// ==================== ویجت پس‌زمینه ماتریکس ====================
+class MatrixBackground extends StatefulWidget {
   final Widget child;
-  const HackerBackground({super.key, required this.child});
+  const MatrixBackground({super.key, required this.child});
+  @override
+  State<MatrixBackground> createState() => _MatrixBackgroundState();
+}
 
+class _MatrixBackgroundState extends State<MatrixBackground> {
   @override
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        // تصویر پس زمینه ماتریکس
+        Container(color: const Color(0xFF050A05)), // پس زمینه سبز خیلی تیره
         Positioned.fill(
-          child: Image.network(
-            'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?q=80&w=1000&auto=format&fit=crop',
-            fit: BoxFit.cover,
-            color: Colors.black.withOpacity(0.7), // لایه تیره برای خوانایی
-            colorBlendMode: BlendMode.darken,
-          ),
+          child: CustomPaint(painter: MatrixPainter()),
         ),
-        child,
+        Positioned.fill(
+          child: Container(color: Colors.black.withOpacity(0.5)), // لایه تیره برای خوانایی متن
+        ),
+        widget.child,
       ],
     );
   }
 }
+
+class MatrixPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()..color = const Color(0xFF00FFAA).withOpacity(0.15);
+    final random = Random();
+    for (int i = 0; i < 50; i++) {
+      final x = random.nextDouble() * size.width;
+      final y = random.nextDouble() * size.height;
+      final textPainter = TextPainter(
+        text: TextSpan(
+          text: String.fromCharCode(random.nextInt(90) + 33),
+          style: const TextStyle(color: Color(0xFF00FFAA), fontSize: 16, fontWeight: FontWeight.bold),
+        ),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      textPainter.paint(canvas, Offset(x, y));
+      canvas.drawCircle(Offset(x, y + 10), 1.5, paint);
+    }
+  }
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+}
+// =========================================================
 
 // ==================== ۱. لاگین سرور ====================
 class ServerLoginScreen extends StatefulWidget {
@@ -85,7 +113,7 @@ class _ServerLoginScreenState extends State<ServerLoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: HackerBackground(
+      body: MatrixBackground(
         child: Center(
           child: Padding(
             padding: const EdgeInsets.all(24.0),
@@ -94,7 +122,7 @@ class _ServerLoginScreenState extends State<ServerLoginScreen> {
               children: [
                 const Icon(Icons.dns, size: 80, color: Color(0xFF00FFAA)),
                 const SizedBox(height: 30),
-                const Text('اتصال به سرور', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                const Text('اتصال به سرور', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white)),
                 const SizedBox(height: 20),
                 TextField(controller: _ipController, style: const TextStyle(color: Colors.white), decoration: const InputDecoration(labelText: 'آی‌پی سرور')),
                 const SizedBox(height: 16),
@@ -138,7 +166,6 @@ class _AppLoginScreenState extends State<AppLoginScreen> {
         body: jsonEncode({'username': _userController.text, 'password': _passController.text}),
       ).timeout(const Duration(seconds: 10));
       
-      if (res.body.trim().startsWith('<')) throw Exception('پاسخ نامعتبر از سرور');
       final data = jsonDecode(res.body);
       if (data['status'] == 'success') {
         Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const DashboardScreen()));
@@ -154,13 +181,13 @@ class _AppLoginScreenState extends State<AppLoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: HackerBackground(
+      body: MatrixBackground(
         child: Center(
           child: Padding(
             padding: const EdgeInsets.all(24.0),
             child: Column(
               children: [
-                const Text('ورود به پنل مدیریت', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                const Text('ورود به پنل مدیریت', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white)),
                 const SizedBox(height: 30),
                 TextField(controller: _userController, style: const TextStyle(color: Colors.white), decoration: const InputDecoration(labelText: 'نام کاربری')),
                 const SizedBox(height: 16),
@@ -191,18 +218,43 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  // ساختار تغییر کرد: لیستی از دیکشنری‌ها شامل شماره و اسم
   List<Map<String, String>> accounts = []; 
+  int totalSent = 0;
+  int runningTasks = 0;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchStats();
+    // آپدیت خودکار آمار هر ۵ ثانیه
+    _timer = Timer.periodic(const Duration(seconds: 5), (timer) => _fetchStats());
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _fetchStats() async {
+    try {
+      final res = await http.get(Uri.parse('$SERVER_URL/api/stats')).timeout(const Duration(seconds: 5));
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+        setState(() {
+          totalSent = data['total_sent'];
+          runningTasks = data['running'];
+        });
+      }
+    } catch (e) {}
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      extendBodyBehindAppBar: true, // اجازه دیده شدن پس زمینه در بالای صفحه
-      appBar: AppBar(
-        title: const Text('Javad Bot', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 24, color: Colors.white)),
-        backgroundColor: Colors.black45,
-      ),
-      body: HackerBackground(
+      appBar: AppBar(title: const Text('Javad Bot')),
+      body: MatrixBackground(
         child: SafeArea(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(16),
@@ -212,8 +264,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    _buildStatCard('43883', 'Total sent', Icons.send, Colors.blue),
-                    _buildStatCard('1', 'Running', Icons.all_inclusive, Colors.cyan),
+                    _buildStatCard('$totalSent', 'Total sent', Icons.send, Colors.blue),
+                    _buildStatCard('$runningTasks', 'Running', Icons.all_inclusive, Colors.cyan),
                     _buildStatCard('${accounts.length}', 'Accounts', Icons.sync, Colors.lightBlue),
                   ],
                 ),
@@ -229,7 +281,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         itemBuilder: (context, index) {
                           final acc = accounts[index];
                           return Card(
-                            color: const Color(0xFF131A22).withOpacity(0.9), // نیمه شفاف
+                            color: const Color(0xFF131A22).withOpacity(0.9),
                             margin: const EdgeInsets.only(bottom: 12),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: BorderSide(color: Colors.green.withOpacity(0.3))),
                             child: ListTile(
@@ -238,11 +290,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               subtitle: Row(children: [
                                 const Icon(Icons.circle, color: Colors.greenAccent, size: 10),
                                 const SizedBox(width: 5),
-                                Text(acc['phone']!, style: const TextStyle(color: Colors.greenAccent, fontSize: 12)), // نمایش شماره در زیر اسم
+                                Text(acc['phone']!, style: const TextStyle(color: Colors.greenAccent, fontSize: 12)), // شماره در زیر اسم
                               ]),
                               trailing: const Icon(Icons.arrow_back_ios, size: 16, color: Colors.grey),
                               onTap: () {
-                                // ارسال شماره به عنوان شناسه به بک اند
                                 Navigator.push(context, MaterialPageRoute(builder: (context) => AccountDetailScreen(phone: acc['phone']!)));
                               },
                             ),
@@ -257,7 +308,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
       floatingActionButton: FloatingActionButton(
         backgroundColor: Colors.cyanAccent,
         onPressed: () async {
-          // دریافت دیکشنری شامل اسم و شماره
           final newAccount = await Navigator.push<Map<String, String>>(context, MaterialPageRoute(builder: (context) => const AddAccountScreen()));
           if (newAccount != null) {
             setState(() { accounts.add(newAccount); });
@@ -273,7 +323,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       width: 105,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFF131A22).withOpacity(0.8), // نیمه شفاف
+        color: const Color(0xFF131A22).withOpacity(0.9),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.grey.shade800),
         boxShadow: [BoxShadow(color: iconColor.withOpacity(0.1), blurRadius: 10)],
@@ -286,7 +336,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             child: Icon(icon, color: iconColor),
           ),
           const SizedBox(height: 10),
-          Text(value, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white)),
+          Text(value, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white)),
           Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
         ],
       ),
@@ -317,7 +367,6 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
         body: jsonEncode({'phone': _phoneController.text}),
       ).timeout(const Duration(seconds: 10));
       
-      if (res.body.trim().startsWith('<')) throw Exception('پاسخ نامعتبر');
       final data = jsonDecode(res.body);
       if (data['status'] == 'success') {
         setState(() { _isOtpSent = true; _hash = data['hash']; });
@@ -339,11 +388,8 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
         body: jsonEncode({'phone': _phoneController.text, 'code': _codeController.text, 'phone_code_hash': _hash}),
       ).timeout(const Duration(seconds: 10));
       
-      if (res.body.trim().startsWith('<')) throw Exception('پاسخ نامعتبر');
-
       final data = jsonDecode(res.body);
       if (data['status'] == 'success') {
-        // بازگرداندن هم شماره و هم اسم استخراج شده
         Navigator.pop(context, {
           'phone': _phoneController.text,
           'name': data['name'] ?? 'بدون نام'
@@ -360,9 +406,8 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      extendBodyBehindAppBar: true,
-      appBar: AppBar(title: const Text('افزودن اکانت'), backgroundColor: Colors.black45),
-      body: HackerBackground(
+      appBar: AppBar(title: const Text('افزودن اکانت')),
+      body: MatrixBackground(
         child: Center(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(24.0),
@@ -399,9 +444,8 @@ class AccountDetailScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      extendBodyBehindAppBar: true,
-      appBar: AppBar(title: Text(phone), backgroundColor: Colors.black45),
-      body: HackerBackground(
+      appBar: AppBar(title: Text(phone)),
+      body: MatrixBackground(
         child: SafeArea(
           child: GridView.count(
             crossAxisCount: 2,
@@ -424,7 +468,7 @@ class AccountDetailScreen extends StatelessWidget {
     return InkWell(
       onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => page)),
       child: Container(
-        decoration: BoxDecoration(color: const Color(0xFF131A22).withOpacity(0.85), borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.green.withOpacity(0.3))),
+        decoration: BoxDecoration(color: const Color(0xFF131A22).withOpacity(0.9), borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.green.withOpacity(0.3))),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [Icon(icon, size: 40, color: Colors.white), const SizedBox(height: 12), Text(title, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white))],
@@ -447,6 +491,7 @@ class _SpamScreenState extends State<SpamScreen> {
   final _count = TextEditingController(text: "50");
   final _speed = TextEditingController(text: "1000");
   String? _selectedChat;
+  String? _selectedChatName;
   List<dynamic> _chats = [];
   bool _isLoadingChats = true;
 
@@ -462,17 +507,12 @@ class _SpamScreenState extends State<SpamScreen> {
       final data = jsonDecode(res.body);
       if (data['status'] == 'success') {
         setState(() { _chats = data['chats']; _isLoadingChats = false; });
-      } else {
-        setState(() => _isLoadingChats = false);
       }
     } catch (e) { setState(() => _isLoadingChats = false); }
   }
 
   void _startSpam() async {
-    if (_selectedChat == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('لطفا یک گروه انتخاب کنید')));
-      return;
-    }
+    if (_selectedChat == null) return;
     try {
       final res = await http.post(
         Uri.parse('$SERVER_URL/api/task/start'),
@@ -482,6 +522,7 @@ class _SpamScreenState extends State<SpamScreen> {
           "task_id": DateTime.now().millisecondsSinceEpoch.toString(),
           "task_type": "spam",
           "target_chat": _selectedChat,
+          "target_chat_name": _selectedChatName,
           "text": _text.text,
           "count": int.parse(_count.text),
           "speed": int.parse(_speed.text)
@@ -499,9 +540,8 @@ class _SpamScreenState extends State<SpamScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      extendBodyBehindAppBar: true,
-      appBar: AppBar(title: const Text('تنظیم اسپم'), backgroundColor: Colors.black45),
-      body: HackerBackground(
+      appBar: AppBar(title: const Text('تنظیم اسپم')),
+      body: MatrixBackground(
         child: SafeArea(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(16),
@@ -516,14 +556,19 @@ class _SpamScreenState extends State<SpamScreen> {
                       style: const TextStyle(color: Colors.white, fontSize: 16),
                       decoration: const InputDecoration(labelText: 'انتخاب گروه مقصد'),
                       items: _chats.map((c) => DropdownMenuItem<String>(value: c['id'].toString(), child: Text(c['title']))).toList(),
-                      onChanged: (val) => setState(() => _selectedChat = val),
+                      onChanged: (val) {
+                        setState(() {
+                          _selectedChat = val;
+                          _selectedChatName = _chats.firstWhere((c) => c['id'].toString() == val)['title'];
+                        });
+                      },
                     ),
                 const SizedBox(height: 16),
                 Row(
                   children: [
                     Expanded(child: TextField(controller: _count, style: const TextStyle(color: Colors.white), keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'تعداد (0 = بی‌نهایت)'))),
                     const SizedBox(width: 16),
-                    Expanded(child: TextField(controller: _speed, style: const TextStyle(color: Colors.white), keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'سرعت (میلی‌ثانیه)'))),
+                    Expanded(child: TextField(controller: _speed, style: const TextStyle(color: Colors.white), keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'سرعت (ms)'))),
                   ],
                 ),
                 const SizedBox(height: 30),
@@ -560,6 +605,7 @@ class _ForwardScreenState extends State<ForwardScreen> {
   
   String? _sourceChat;
   String? _targetChat;
+  String? _targetChatName;
   List<dynamic> _chats = [];
   bool _isLoadingChats = true;
 
@@ -594,6 +640,7 @@ class _ForwardScreenState extends State<ForwardScreen> {
           "task_type": "forward",
           "source_chat": _sourceChat,
           "target_chat": _targetChat,
+          "target_chat_name": _targetChatName,
           "message_link": _linkController.text,
           "count": int.parse(_count.text),
           "speed": int.parse(_speed.text)
@@ -611,9 +658,8 @@ class _ForwardScreenState extends State<ForwardScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      extendBodyBehindAppBar: true,
-      appBar: AppBar(title: Text('فوروارد - مرحله $_step'), backgroundColor: Colors.black45),
-      body: HackerBackground(
+      appBar: AppBar(title: Text('فوروارد - مرحله $_step')),
+      body: MatrixBackground(
         child: SafeArea(
           child: Padding(
             padding: const EdgeInsets.all(16.0),
@@ -657,14 +703,19 @@ class _ForwardScreenState extends State<ForwardScreen> {
           style: const TextStyle(color: Colors.white, fontSize: 16),
           decoration: const InputDecoration(labelText: 'گپ مقصد را انتخاب کنید'),
           items: _chats.map((c) => DropdownMenuItem<String>(value: c['id'].toString(), child: Text(c['title']))).toList(),
-          onChanged: (val) => setState(() => _targetChat = val),
+          onChanged: (val) {
+            setState(() {
+              _targetChat = val;
+              _targetChatName = _chats.firstWhere((c) => c['id'].toString() == val)['title'];
+            });
+          },
         ),
         const SizedBox(height: 16),
         Row(
           children: [
             Expanded(child: TextField(controller: _count, style: const TextStyle(color: Colors.white), keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'تعداد (0 = بی‌نهایت)'))),
             const SizedBox(width: 16),
-            Expanded(child: TextField(controller: _speed, style: const TextStyle(color: Colors.white), keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'سرعت (میلی‌ثانیه)'))),
+            Expanded(child: TextField(controller: _speed, style: const TextStyle(color: Colors.white), keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'سرعت (ms)'))),
           ],
         ),
         const Spacer(),
@@ -705,12 +756,47 @@ class _TasksScreenState extends State<TasksScreen> {
     } catch (e) { print(e); }
   }
 
+  void _editTask(String taskId, int currentCount, int currentSpeed) {
+    final countCtrl = TextEditingController(text: currentCount.toString());
+    final speedCtrl = TextEditingController(text: currentSpeed.toString());
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF131A22),
+        title: const Text('ویرایش تسک', style: TextStyle(color: Colors.white)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(controller: countCtrl, style: const TextStyle(color: Colors.white), keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'تعداد جدید')),
+            const SizedBox(height: 10),
+            TextField(controller: speedCtrl, style: const TextStyle(color: Colors.white), keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'سرعت جدید (ms)')),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () async {
+              await http.post(
+                Uri.parse('$SERVER_URL/api/task/update/$taskId'),
+                headers: {"Content-Type": "application/json"},
+                body: jsonEncode({"count": int.parse(countCtrl.text), "speed": int.parse(speedCtrl.text)}),
+              );
+              Navigator.pop(context);
+              _fetchTasks();
+            },
+            child: const Text('ذخیره', style: TextStyle(color: Color(0xFF00FFAA))),
+          ),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('لغو', style: TextStyle(color: Colors.grey))),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      extendBodyBehindAppBar: true,
-      appBar: AppBar(title: const Text('تسک‌های فعال'), backgroundColor: Colors.black45),
-      body: HackerBackground(
+      appBar: AppBar(title: const Text('تسک‌های فعال')),
+      body: MatrixBackground(
         child: SafeArea(
           child: tasks.isEmpty 
               ? const Center(child: Text('هیچ تسکی در حال اجرا نیست', style: TextStyle(color: Colors.white)))
@@ -721,13 +807,23 @@ class _TasksScreenState extends State<TasksScreen> {
                     return Card(
                       color: const Color(0xFF131A22).withOpacity(0.9),
                       child: ListTile(
-                        title: Text('${t['type']} - ${t['account']}', style: const TextStyle(color: Colors.white)),
-                        trailing: IconButton(
-                          icon: const Icon(Icons.delete, color: Colors.redAccent),
-                          onPressed: () async {
-                            await http.post(Uri.parse('$SERVER_URL/api/task/stop/${t['id']}')).timeout(const Duration(seconds: 10));
-                            _fetchTasks();
-                          },
+                        title: Text(t['chat_name'] ?? 'نامشخص', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                        subtitle: Text('${t['type']} | تعداد: ${t['count']} | سرعت: ${t['speed']}', style: const TextStyle(color: Colors.grey)),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.edit, color: Colors.blueAccent),
+                              onPressed: () => _editTask(t['id'], t['count'], t['speed']),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.delete, color: Colors.redAccent),
+                              onPressed: () async {
+                                await http.post(Uri.parse('$SERVER_URL/api/task/stop/${t['id']}')).timeout(const Duration(seconds: 10));
+                                _fetchTasks();
+                              },
+                            ),
+                          ],
                         ),
                       ),
                     );
