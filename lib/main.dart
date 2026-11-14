@@ -3,7 +3,6 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:io';
 import 'dart:async';
-import 'dart:math';
 
 void main() {
   HttpOverrides.global = null;
@@ -22,7 +21,7 @@ class MyApp extends StatelessWidget {
       builder: (context, child) => Directionality(textDirection: TextDirection.rtl, child: child!),
       theme: ThemeData(
         brightness: Brightness.dark,
-        scaffoldBackgroundColor: Colors.transparent, // پس زمینه رو به ویجت Matrix می‌سپاریم
+        scaffoldBackgroundColor: Colors.transparent,
         primaryColor: const Color(0xFF00FFAA),
         textTheme: const TextTheme(
           bodyLarge: TextStyle(color: Colors.white),
@@ -30,7 +29,7 @@ class MyApp extends StatelessWidget {
           titleMedium: TextStyle(color: Colors.white),
         ),
         appBarTheme: const AppBarTheme(
-          backgroundColor: Colors.black87, 
+          backgroundColor: Colors.black54, 
           elevation: 0, 
           centerTitle: true,
           titleTextStyle: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
@@ -49,53 +48,28 @@ class MyApp extends StatelessWidget {
   }
 }
 
-// ==================== ویجت پس‌زمینه ماتریکس ====================
-class MatrixBackground extends StatefulWidget {
+// ==================== ویجت پس‌زمینه (عکس شما) ====================
+class CustomBackground extends StatelessWidget {
   final Widget child;
-  const MatrixBackground({super.key, required this.child});
-  @override
-  State<MatrixBackground> createState() => _MatrixBackgroundState();
-}
+  const CustomBackground({super.key, required this.child});
 
-class _MatrixBackgroundState extends State<MatrixBackground> {
   @override
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        Container(color: const Color(0xFF050A05)), // پس زمینه سبز خیلی تیره
         Positioned.fill(
-          child: CustomPaint(painter: MatrixPainter()),
+          child: Image.asset(
+            'assets/bg.png', // مسیر عکس آپلود شده
+            fit: BoxFit.cover,
+          ),
         ),
         Positioned.fill(
-          child: Container(color: Colors.black.withOpacity(0.5)), // لایه تیره برای خوانایی متن
+          child: Container(color: Colors.black.withOpacity(0.4)), // لایه تیره برای خوانایی متن
         ),
-        widget.child,
+        child,
       ],
     );
   }
-}
-
-class MatrixPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()..color = const Color(0xFF00FFAA).withOpacity(0.15);
-    final random = Random();
-    for (int i = 0; i < 50; i++) {
-      final x = random.nextDouble() * size.width;
-      final y = random.nextDouble() * size.height;
-      final textPainter = TextPainter(
-        text: TextSpan(
-          text: String.fromCharCode(random.nextInt(90) + 33),
-          style: const TextStyle(color: Color(0xFF00FFAA), fontSize: 16, fontWeight: FontWeight.bold),
-        ),
-        textDirection: TextDirection.ltr,
-      )..layout();
-      textPainter.paint(canvas, Offset(x, y));
-      canvas.drawCircle(Offset(x, y + 10), 1.5, paint);
-    }
-  }
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }
 // =========================================================
 
@@ -113,7 +87,7 @@ class _ServerLoginScreenState extends State<ServerLoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: MatrixBackground(
+      body: CustomBackground(
         child: Center(
           child: Padding(
             padding: const EdgeInsets.all(24.0),
@@ -181,7 +155,7 @@ class _AppLoginScreenState extends State<AppLoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: MatrixBackground(
+      body: CustomBackground(
         child: Center(
           child: Padding(
             padding: const EdgeInsets.all(24.0),
@@ -227,7 +201,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
   void initState() {
     super.initState();
     _fetchStats();
-    // آپدیت خودکار آمار هر ۵ ثانیه
     _timer = Timer.periodic(const Duration(seconds: 5), (timer) => _fetchStats());
   }
 
@@ -254,7 +227,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Javad Bot')),
-      body: MatrixBackground(
+      body: CustomBackground(
         child: SafeArea(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(16),
@@ -286,11 +259,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: BorderSide(color: Colors.green.withOpacity(0.3))),
                             child: ListTile(
                               leading: const CircleAvatar(backgroundColor: Colors.grey, child: Icon(Icons.person, color: Colors.white)),
-                              title: Text(acc['name']!, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)), // نمایش اسم
+                              title: Text(acc['name']!, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
                               subtitle: Row(children: [
                                 const Icon(Icons.circle, color: Colors.greenAccent, size: 10),
                                 const SizedBox(width: 5),
-                                Text(acc['phone']!, style: const TextStyle(color: Colors.greenAccent, fontSize: 12)), // شماره در زیر اسم
+                                Text(acc['phone']!, style: const TextStyle(color: Colors.greenAccent, fontSize: 12)),
                               ]),
                               trailing: const Icon(Icons.arrow_back_ios, size: 16, color: Colors.grey),
                               onTap: () {
@@ -395,7 +368,11 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
           'name': data['name'] ?? 'بدون نام'
         });
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(data['message'])));
+        // نمایش دقیق خطای سرور (مثلا خطای 2FA یا ذخیره سشن)
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(data['message']),
+          duration: const Duration(seconds: 5),
+        ));
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('خطا: ${e.toString()}')));
@@ -407,7 +384,7 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('افزودن اکانت')),
-      body: MatrixBackground(
+      body: CustomBackground(
         child: Center(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(24.0),
@@ -445,7 +422,7 @@ class AccountDetailScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text(phone)),
-      body: MatrixBackground(
+      body: CustomBackground(
         child: SafeArea(
           child: GridView.count(
             crossAxisCount: 2,
@@ -541,7 +518,7 @@ class _SpamScreenState extends State<SpamScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('تنظیم اسپم')),
-      body: MatrixBackground(
+      body: CustomBackground(
         child: SafeArea(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(16),
@@ -659,7 +636,7 @@ class _ForwardScreenState extends State<ForwardScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text('فوروارد - مرحله $_step')),
-      body: MatrixBackground(
+      body: CustomBackground(
         child: SafeArea(
           child: Padding(
             padding: const EdgeInsets.all(16.0),
@@ -796,7 +773,7 @@ class _TasksScreenState extends State<TasksScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('تسک‌های فعال')),
-      body: MatrixBackground(
+      body: CustomBackground(
         child: SafeArea(
           child: tasks.isEmpty 
               ? const Center(child: Text('هیچ تسکی در حال اجرا نیست', style: TextStyle(color: Colors.white)))
