@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart'; 
 import 'dart:convert';
 import 'dart:io';
 import 'dart:async';
@@ -64,7 +65,7 @@ class CustomBackground extends StatelessWidget {
           ),
         ),
         Positioned.fill(
-          child: Container(color: Colors.black.withOpacity(0.4)), // لایه تیره
+          child: Container(color: Colors.black.withOpacity(0.4)),
         ),
         child,
       ],
@@ -139,7 +140,7 @@ class _AppLoginScreenState extends State<AppLoginScreen> {
         body: jsonEncode({'username': _userController.text, 'password': _passController.text}),
       ).timeout(const Duration(seconds: 10));
       
-      final data = jsonDecode(res.body);
+      final data = jsonDecode(utf8.decode(res.bodyBytes)); // 👈 اصلاح فونت
       if (data['status'] == 'success') {
         Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const DashboardScreen()));
       } else {
@@ -199,6 +200,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   void initState() {
     super.initState();
+    _loadAccounts();
     _fetchStats();
     _timer = Timer.periodic(const Duration(seconds: 5), (timer) => _fetchStats());
   }
@@ -209,11 +211,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
     super.dispose();
   }
 
+  Future<void> _saveAccounts() async {
+    final prefs = await SharedPreferences.getInstance();
+    prefs.setString('saved_accounts', jsonEncode(accounts));
+  }
+
+  Future<void> _loadAccounts() async {
+    final prefs = await SharedPreferences.getInstance();
+    final String? accountsJson = prefs.getString('saved_accounts');
+    if (accountsJson != null) {
+      List<dynamic> decoded = jsonDecode(accountsJson);
+      setState(() {
+        accounts = decoded.map((e) => Map<String, String>.from(e)).toList();
+      });
+    }
+  }
+
   Future<void> _fetchStats() async {
     try {
       final res = await http.get(Uri.parse('$SERVER_URL/api/stats')).timeout(const Duration(seconds: 5));
       if (res.statusCode == 200) {
-        final data = jsonDecode(res.body);
+        final data = jsonDecode(utf8.decode(res.bodyBytes)); // 👈 اصلاح فونت
         setState(() {
           totalSent = data['total_sent'];
           runningTasks = data['running'];
@@ -282,7 +300,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
         onPressed: () async {
           final newAccount = await Navigator.push<Map<String, String>>(context, MaterialPageRoute(builder: (context) => const AddAccountScreen()));
           if (newAccount != null) {
-            setState(() { accounts.add(newAccount); });
+            setState(() { 
+              accounts.add(newAccount); 
+            });
+            _saveAccounts(); 
           }
         },
         child: const Icon(Icons.add, color: Colors.black, size: 30),
@@ -339,7 +360,7 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
         body: jsonEncode({'phone': _phoneController.text}),
       ).timeout(const Duration(seconds: 10));
       
-      final data = jsonDecode(res.body);
+      final data = jsonDecode(utf8.decode(res.bodyBytes)); // 👈 اصلاح فونت
       if (data['status'] == 'success') {
         setState(() { _isOtpSent = true; _hash = data['hash']; });
       } else {
@@ -360,9 +381,8 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
         body: jsonEncode({'phone': _phoneController.text, 'code': _codeController.text, 'phone_code_hash': _hash}),
       ).timeout(const Duration(seconds: 10));
       
-      final data = jsonDecode(res.body);
+      final data = jsonDecode(utf8.decode(res.bodyBytes)); // 👈 اصلاح فونت
       if (data['status'] == 'success') {
-        // ✅ اصلاح باگ نوع داده‌ها (Type Error) در اینجا انجام شد
         Navigator.pop(context, {
           'phone': _phoneController.text.toString(),
           'name': (data['name'] ?? 'بدون نام').toString(),
@@ -478,13 +498,17 @@ class _SpamScreenState extends State<SpamScreen> {
   }
 
   Future<void> _fetchChats() async {
+    setState(() => _isLoadingChats = true);
     try {
       final res = await http.get(Uri.parse('$SERVER_URL/api/chats/${widget.phone}')).timeout(const Duration(seconds: 10));
-      final data = jsonDecode(res.body);
+      final data = jsonDecode(utf8.decode(res.bodyBytes)); // 👈 اصلاح فونت
       if (data['status'] == 'success') {
-        setState(() { _chats = data['chats']; _isLoadingChats = false; });
+        setState(() { _chats = data['chats']; });
       }
-    } catch (e) { setState(() => _isLoadingChats = false); }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('خطا در دریافت گپ‌ها: ${e.toString()}')));
+    }
+    setState(() => _isLoadingChats = false);
   }
 
   void _startSpam() async {
@@ -505,7 +529,7 @@ class _SpamScreenState extends State<SpamScreen> {
         }),
       ).timeout(const Duration(seconds: 10));
       
-      final data = jsonDecode(res.body);
+      final data = jsonDecode(utf8.decode(res.bodyBytes)); // 👈 اصلاح فونت
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(data['message'])));
       if(data['status'] == 'success') Navigator.pop(context);
     } catch (e) {
@@ -525,20 +549,41 @@ class _SpamScreenState extends State<SpamScreen> {
               children: [
                 TextField(controller: _text, style: const TextStyle(color: Colors.white), maxLines: 4, decoration: const InputDecoration(labelText: 'متن اسپم')),
                 const SizedBox(height: 16),
-                _isLoadingChats 
-                  ? const Center(child: CircularProgressIndicator())
-                  : DropdownButtonFormField<String>(
-                      dropdownColor: const Color(0xFF131A22),
-                      style: const TextStyle(color: Colors.white, fontSize: 16),
-                      decoration: const InputDecoration(labelText: 'انتخاب گروه مقصد'),
-                      items: _chats.map((c) => DropdownMenuItem<String>(value: c['id'].toString(), child: Text(c['title']))).toList(),
-                      onChanged: (val) {
-                        setState(() {
-                          _selectedChat = val;
-                          _selectedChatName = _chats.firstWhere((c) => c['id'].toString() == val)['title'];
-                        });
-                      },
+                // بخش انتخاب گپ با دکمه ری‌ستارت
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Expanded(
+                      child: _isLoadingChats && _chats.isEmpty
+                          ? const Center(child: Padding(padding: EdgeInsets.all(8.0), child: CircularProgressIndicator()))
+                          : DropdownButtonFormField<String>(
+                              dropdownColor: const Color(0xFF131A22),
+                              style: const TextStyle(color: Colors.white, fontSize: 16),
+                              decoration: const InputDecoration(labelText: 'انتخاب گروه مقصد'),
+                              value: _selectedChat,
+                              items: _chats.map((c) => DropdownMenuItem<String>(value: c['id'].toString(), child: Text(c['title']))).toList(),
+                              onChanged: (val) {
+                                setState(() {
+                                  _selectedChat = val;
+                                  _selectedChatName = _chats.firstWhere((c) => c['id'].toString() == val)['title'];
+                                });
+                              },
+                            ),
                     ),
+                    const SizedBox(width: 8),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF131A22).withOpacity(0.9),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: IconButton(
+                        icon: const Icon(Icons.refresh, color: Color(0xFF00FFAA)),
+                        onPressed: _fetchChats,
+                        tooltip: 'بروزرسانی لیست گپ‌ها',
+                      ),
+                    ),
+                  ],
+                ),
                 const SizedBox(height: 16),
                 Row(
                   children: [
@@ -592,13 +637,17 @@ class _ForwardScreenState extends State<ForwardScreen> {
   }
 
   Future<void> _fetchChats() async {
+    setState(() => _isLoadingChats = true);
     try {
       final res = await http.get(Uri.parse('$SERVER_URL/api/chats/${widget.phone}')).timeout(const Duration(seconds: 10));
-      final data = jsonDecode(res.body);
+      final data = jsonDecode(utf8.decode(res.bodyBytes)); // 👈 اصلاح فونت
       if (data['status'] == 'success') {
-        setState(() { _chats = data['chats']; _isLoadingChats = false; });
+        setState(() { _chats = data['chats']; });
       }
-    } catch (e) { setState(() => _isLoadingChats = false); }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('خطا در دریافت گپ‌ها: ${e.toString()}')));
+    }
+    setState(() => _isLoadingChats = false);
   }
 
   void _startForward() async {
@@ -623,7 +672,7 @@ class _ForwardScreenState extends State<ForwardScreen> {
         }),
       ).timeout(const Duration(seconds: 10));
       
-      final data = jsonDecode(res.body);
+      final data = jsonDecode(utf8.decode(res.bodyBytes)); // 👈 اصلاح فونت
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(data['message'])));
       if(data['status'] == 'success') Navigator.pop(context);
     } catch (e) {
@@ -651,12 +700,35 @@ class _ForwardScreenState extends State<ForwardScreen> {
       children: [
         TextField(controller: _linkController, style: const TextStyle(color: Colors.white), decoration: const InputDecoration(labelText: 'لینک پیام برای فوروارد (مثال: https://splus.ir/c/25384148/3)')),
         const SizedBox(height: 16),
-        _isLoadingChats ? const Center(child: CircularProgressIndicator()) : DropdownButtonFormField<String>(
-          dropdownColor: const Color(0xFF131A22),
-          style: const TextStyle(color: Colors.white, fontSize: 16),
-          decoration: const InputDecoration(labelText: 'گپ مبدا را انتخاب کنید'),
-          items: _chats.map((c) => DropdownMenuItem<String>(value: c['id'].toString(), child: Text(c['title']))).toList(),
-          onChanged: (val) => setState(() => _sourceChat = val),
+        // بخش انتخاب گپ با دکمه ری‌ستارت
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Expanded(
+              child: _isLoadingChats && _chats.isEmpty
+                  ? const Center(child: Padding(padding: EdgeInsets.all(8.0), child: CircularProgressIndicator()))
+                  : DropdownButtonFormField<String>(
+                      dropdownColor: const Color(0xFF131A22),
+                      style: const TextStyle(color: Colors.white, fontSize: 16),
+                      decoration: const InputDecoration(labelText: 'گپ مبدا را انتخاب کنید'),
+                      value: _sourceChat,
+                      items: _chats.map((c) => DropdownMenuItem<String>(value: c['id'].toString(), child: Text(c['title']))).toList(),
+                      onChanged: (val) => setState(() => _sourceChat = val),
+                    ),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              decoration: BoxDecoration(
+                color: const Color(0xFF131A22).withOpacity(0.9),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: IconButton(
+                icon: const Icon(Icons.refresh, color: Color(0xFF00FFAA)),
+                onPressed: _fetchChats,
+                tooltip: 'بروزرسانی لیست گپ‌ها',
+              ),
+            ),
+          ],
         ),
         const Spacer(),
         SizedBox(
@@ -674,17 +746,39 @@ class _ForwardScreenState extends State<ForwardScreen> {
   Widget _buildStep2() {
     return Column(
       children: [
-        DropdownButtonFormField<String>(
-          dropdownColor: const Color(0xFF131A22),
-          style: const TextStyle(color: Colors.white, fontSize: 16),
-          decoration: const InputDecoration(labelText: 'گپ مقصد را انتخاب کنید'),
-          items: _chats.map((c) => DropdownMenuItem<String>(value: c['id'].toString(), child: Text(c['title']))).toList(),
-          onChanged: (val) {
-            setState(() {
-              _targetChat = val;
-              _targetChatName = _chats.firstWhere((c) => c['id'].toString() == val)['title'];
-            });
-          },
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Expanded(
+              child: _isLoadingChats && _chats.isEmpty
+                  ? const Center(child: Padding(padding: EdgeInsets.all(8.0), child: CircularProgressIndicator()))
+                  : DropdownButtonFormField<String>(
+                      dropdownColor: const Color(0xFF131A22),
+                      style: const TextStyle(color: Colors.white, fontSize: 16),
+                      decoration: const InputDecoration(labelText: 'گپ مقصد را انتخاب کنید'),
+                      value: _targetChat,
+                      items: _chats.map((c) => DropdownMenuItem<String>(value: c['id'].toString(), child: Text(c['title']))).toList(),
+                      onChanged: (val) {
+                        setState(() {
+                          _targetChat = val;
+                          _targetChatName = _chats.firstWhere((c) => c['id'].toString() == val)['title'];
+                        });
+                      },
+                    ),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              decoration: BoxDecoration(
+                color: const Color(0xFF131A22).withOpacity(0.9),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: IconButton(
+                icon: const Icon(Icons.refresh, color: Color(0xFF00FFAA)),
+                onPressed: _fetchChats,
+                tooltip: 'بروزرسانی لیست گپ‌ها',
+              ),
+            ),
+          ],
         ),
         const SizedBox(height: 16),
         Row(
@@ -727,7 +821,7 @@ class _TasksScreenState extends State<TasksScreen> {
   Future<void> _fetchTasks() async {
     try {
       final res = await http.get(Uri.parse('$SERVER_URL/api/tasks')).timeout(const Duration(seconds: 10));
-      final data = jsonDecode(res.body);
+      final data = jsonDecode(utf8.decode(res.bodyBytes)); // 👈 اصلاح فونت
       setState(() => tasks = data['tasks']);
     } catch (e) { print(e); }
   }
