@@ -10,7 +10,8 @@ void main() {
   runApp(const MyApp());
 }
 
-const String SERVER_URL = 'http://185.211.58.189:8000';
+// 👈 آی‌پی سرور جدید شما
+const String SERVER_URL = 'http://80.244.7.90:8000'; 
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -41,7 +42,7 @@ class MyApp extends StatelessWidget {
           focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF00FFAA))),
         ),
       ),
-      home: const ServerLoginScreen(),
+      home: const AppLoginScreen(), // 👈 مستقیماً میرود به صفحه لاگین اپ
     );
   }
 }
@@ -61,53 +62,7 @@ class CustomBackground extends StatelessWidget {
   }
 }
 
-// ==================== ۱. لاگین سرور ====================
-class ServerLoginScreen extends StatefulWidget {
-  const ServerLoginScreen({super.key});
-  @override
-  State<ServerLoginScreen> createState() => _ServerLoginScreenState();
-}
-
-class _ServerLoginScreenState extends State<ServerLoginScreen> {
-  final _ipController = TextEditingController(text: "185.211.58.189");
-  final _rootController = TextEditingController(text: "root");
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: CustomBackground(
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.dns, size: 80, color: Color(0xFF00FFAA)),
-                const SizedBox(height: 30),
-                const Text('اتصال به سرور', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white)),
-                const SizedBox(height: 20),
-                TextField(controller: _ipController, style: const TextStyle(color: Colors.white), decoration: const InputDecoration(labelText: 'آی‌پی سرور')),
-                const SizedBox(height: 16),
-                TextField(controller: _rootController, style: const TextStyle(color: Colors.white), decoration: const InputDecoration(labelText: 'نام کاربری سرور')),
-                const SizedBox(height: 30),
-                SizedBox(
-                  width: double.infinity, height: 50,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF00FFAA)),
-                    onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const AppLoginScreen())),
-                    child: const Text('اتصال', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ==================== ۲. لاگین اپلیکیشن ====================
+// ==================== ۱. لاگین اپلیکیشن ====================
 class AppLoginScreen extends StatefulWidget {
   const AppLoginScreen({super.key});
   @override
@@ -115,6 +70,7 @@ class AppLoginScreen extends StatefulWidget {
 }
 
 class _AppLoginScreenState extends State<AppLoginScreen> {
+  // از قبل پر شده است
   final _userController = TextEditingController(text: "Javad");
   final _passController = TextEditingController(text: "Relpi");
   bool _isLoading = false;
@@ -149,18 +105,33 @@ class _AppLoginScreenState extends State<AppLoginScreen> {
             padding: const EdgeInsets.all(24.0),
             child: Column(
               children: [
+                const Icon(Icons.security, size: 80, color: Color(0xFF00FFAA)),
+                const SizedBox(height: 20),
                 const Text('ورود به پنل مدیریت', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white)),
                 const SizedBox(height: 30),
-                TextField(controller: _userController, style: const TextStyle(color: Colors.white), decoration: const InputDecoration(labelText: 'نام کاربری')),
+                // فیلد نام کاربری (غیرقابل ویرایش)
+                TextField(
+                  controller: _userController, 
+                  readOnly: true, // 👈 کاربر نمیتواند تغییر دهد
+                  style: const TextStyle(color: Colors.white), 
+                  decoration: const InputDecoration(labelText: 'نام کاربری', prefixIcon: Icon(Icons.person, color: Colors.grey)),
+                ),
                 const SizedBox(height: 16),
-                TextField(controller: _passController, style: const TextStyle(color: Colors.white), obscureText: true, decoration: const InputDecoration(labelText: 'رمز عبور')),
+                // فیلد رمز عبور (غیرقابل ویرایش)
+                TextField(
+                  controller: _passController, 
+                  readOnly: true, // 👈 کاربر نمیتواند تغییر دهد
+                  obscureText: true, 
+                  style: const TextStyle(color: Colors.white), 
+                  decoration: const InputDecoration(labelText: 'رمز عبور', prefixIcon: Icon(Icons.lock, color: Colors.grey)),
+                ),
                 const SizedBox(height: 30),
                 SizedBox(
                   width: double.infinity, height: 50,
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF00FFAA)),
                     onPressed: _isLoading ? null : _login,
-                    child: _isLoading ? const CircularProgressIndicator(color: Colors.black) : const Text('ورود', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+                    child: _isLoading ? const CircularProgressIndicator(color: Colors.black) : const Text('ورود به پنل', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 16)),
                   ),
                 ),
               ],
@@ -172,7 +143,7 @@ class _AppLoginScreenState extends State<AppLoginScreen> {
   }
 }
 
-// ==================== ۳. داشبورد ====================
+// ==================== ۲. داشبورد ====================
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
   @override
@@ -226,7 +197,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Javad Bot')),
+      appBar: AppBar(
+        title: const Text('Javad Bot'),
+        actions: [
+          // 👈 دکمه مدیریت اشتراک‌ها در بالای صفحه
+          IconButton(
+            icon: const Icon(Icons.card_membership, color: Color(0xFF00FFAA)),
+            tooltip: 'مدیریت اشتراک‌ها',
+            onPressed: () {
+              Navigator.push(context, MaterialPageRoute(builder: (context) => const SubscriptionScreen()));
+            },
+          )
+        ],
+      ),
       body: CustomBackground(
         child: SafeArea(
           child: SingleChildScrollView(
@@ -315,7 +298,178 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 }
 
-// ==================== ۴. افزودن اکانت ====================
+// ==================== ۳. صفحه مدیریت اشتراک‌ها (جدید) ====================
+class SubscriptionScreen extends StatefulWidget {
+  const SubscriptionScreen({super.key});
+  @override
+  State<SubscriptionScreen> createState() => _SubscriptionScreenState();
+}
+
+class _SubscriptionScreenState extends State<SubscriptionScreen> {
+  final _userController = TextEditingController();
+  final _passController = TextEditingController();
+  final _daysController = TextEditingController();
+  final _maxAccountsController = TextEditingController(text: "1");
+  bool _isLoading = false;
+
+  Future<void> _createSubscription() async {
+    if (_userController.text.isEmpty || _passController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('نام کاربری و رمز عبور الزامی است')));
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    try {
+      final res = await http.post(
+        Uri.parse('$SERVER_URL/api/subscription/create'),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({
+          "username": _userController.text.trim(),
+          "password": _passController.text.trim(),
+          "days": _daysController.text.trim(),
+          "max_accounts": int.parse(_maxAccountsController.text.trim()),
+        }),
+      ).timeout(const Duration(seconds: 10));
+      
+      final data = jsonDecode(utf8.decode(res.bodyBytes));
+      if (data['status'] == 'success') {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('اشتراک با موفقیت ساخته شد')));
+        Navigator.pop(context); // بازگشت به عقب
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(data['message'])));
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('خطا: ${e.toString()}')));
+    }
+    setState(() => _isLoading = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('مدیریت اشتراک‌ها'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
+      body: CustomBackground(
+        child: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: const Color(0xFF0A100D).withOpacity(0.95), // پس زمینه تیره مایل به سبز
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFF00FFAA).withOpacity(0.3), width: 1),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Center(
+                    child: Text(
+                      'ایجاد اشتراک جدید',
+                      style: TextStyle(color: Colors.cyanAccent, fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  
+                  _buildLabel('نام کاربری'),
+                  TextField(
+                    controller: _userController,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: _buildInputDecoration(),
+                  ),
+                  const SizedBox(height: 16),
+                  
+                  _buildLabel('رمز عبور'),
+                  TextField(
+                    controller: _passController,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: _buildInputDecoration(),
+                  ),
+                  const SizedBox(height: 16),
+                  
+                  _buildLabel('مدت اعتبار (روز) - خالی = نامحدود'),
+                  TextField(
+                    controller: _daysController,
+                    keyboardType: TextInputType.number,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: _buildInputDecoration(hint: 'مثلا 30'),
+                  ),
+                  const SizedBox(height: 16),
+                  
+                  _buildLabel('حداکثر اکانت'),
+                  TextField(
+                    controller: _maxAccountsController,
+                    keyboardType: TextInputType.number,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: _buildInputDecoration(hint: '1'),
+                  ),
+                  const SizedBox(height: 30),
+                  
+                  // دکمه گرادیانتی
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: InkWell(
+                      onTap: _isLoading ? null : _createSubscription,
+                      borderRadius: BorderRadius.circular(12),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF00FFAA), Color(0xFF00BFFF)], // گرادیانت سبز به آبی
+                            begin: Alignment.centerRight,
+                            end: Alignment.centerLeft,
+                          ),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Center(
+                          child: _isLoading 
+                            ? const CircularProgressIndicator(color: Colors.black)
+                            : const Text('ایجاد اشتراک', style: TextStyle(color: Colors.black, fontSize: 16, fontWeight: FontWeight.bold)),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLabel(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8.0),
+      child: Text(text, style: const TextStyle(color: Colors.grey, fontSize: 13)),
+    );
+  }
+
+  InputDecoration _buildInputDecoration({String? hint}) {
+    return InputDecoration(
+      hintText: hint,
+      hintStyle: const TextStyle(color: Colors.grey),
+      filled: true,
+      fillColor: const Color(0xFF07120A), // پس زمینه فیلدها
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: BorderSide(color: const Color(0xFF00FFAA).withOpacity(0.3)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: const BorderSide(color: Color(0xFF00FFAA)),
+      ),
+    );
+  }
+}
+
+// ==================== ۴. افزودن اکانت (بقیه کدها بدون تغییر) ====================
 class AddAccountScreen extends StatefulWidget {
   const AddAccountScreen({super.key});
   @override
@@ -433,7 +587,6 @@ class AccountDetailScreen extends StatelessWidget {
             mainAxisSpacing: 16,
             children: [
               _buildBtn(context, 'اسپم', Icons.email, SpamScreen(phone: phone)),
-              // 👈 ارسال شماره اکانت به صفحه تسک‌ها
               _buildBtn(context, 'تسک‌ها', Icons.settings, TasksScreen(phone: phone)),
               _buildBtn(context, 'ریپلای', Icons.chat, const Center(child: Text('به زودی...', style: TextStyle(color: Colors.white)))),
               _buildBtn(context, 'فوروارد', Icons.forward, ForwardScreen(phone: phone)),
@@ -788,9 +941,9 @@ class _ForwardScreenState extends State<ForwardScreen> {
   }
 }
 
-// ==================== ۸. صفحه تسک‌ها (فیلتر شده بر اساس اکانت) ====================
+// ==================== ۸. صفحه تسک‌ها ====================
 class TasksScreen extends StatefulWidget {
-  final String phone; // 👈 دریافت شماره اکانت
+  final String phone;
   const TasksScreen({super.key, required this.phone});
   
   @override
@@ -813,7 +966,6 @@ class _TasksScreenState extends State<TasksScreen> {
       
       List allTasks = data['tasks'];
       
-      // 👈 فیلتر کردن تسک‌ها فقط برای همین اکانت
       setState(() {
         tasks = allTasks.where((t) => t['account'] == widget.phone).toList();
       });
@@ -860,7 +1012,7 @@ class _TasksScreenState extends State<TasksScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('تسک‌های ${widget.phone}')), // نمایش شماره اکانت در عنوان
+      appBar: AppBar(title: Text('تسک‌های ${widget.phone}')),
       body: CustomBackground(
         child: SafeArea(
           child: tasks.isEmpty 
