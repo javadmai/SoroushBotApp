@@ -30,15 +30,12 @@ class MyApp extends StatelessWidget {
           titleMedium: TextStyle(color: Colors.white),
         ),
         appBarTheme: const AppBarTheme(
-          backgroundColor: Colors.black54, 
-          elevation: 0, 
-          centerTitle: true,
+          backgroundColor: Colors.black54, elevation: 0, centerTitle: true,
           titleTextStyle: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
           iconTheme: IconThemeData(color: Colors.white),
         ),
         inputDecorationTheme: InputDecorationTheme(
-          filled: true,
-          fillColor: const Color(0xFF131A22).withOpacity(0.9), 
+          filled: true, fillColor: const Color(0xFF131A22).withOpacity(0.9), 
           labelStyle: const TextStyle(color: Colors.grey),
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
           focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF00FFAA))),
@@ -49,24 +46,15 @@ class MyApp extends StatelessWidget {
   }
 }
 
-// ==================== ویجت پس‌زمینه ====================
 class CustomBackground extends StatelessWidget {
   final Widget child;
   const CustomBackground({super.key, required this.child});
-
   @override
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        Positioned.fill(
-          child: Image.asset(
-            'assets/bg.png',
-            fit: BoxFit.cover,
-          ),
-        ),
-        Positioned.fill(
-          child: Container(color: Colors.black.withOpacity(0.4)),
-        ),
+        Positioned.fill(child: Image.asset('assets/bg.png', fit: BoxFit.cover)),
+        Positioned.fill(child: Container(color: Colors.black.withOpacity(0.4))),
         child,
       ],
     );
@@ -140,7 +128,7 @@ class _AppLoginScreenState extends State<AppLoginScreen> {
         body: jsonEncode({'username': _userController.text, 'password': _passController.text}),
       ).timeout(const Duration(seconds: 10));
       
-      final data = jsonDecode(utf8.decode(res.bodyBytes)); // 👈 اصلاح فونت
+      final data = jsonDecode(utf8.decode(res.bodyBytes));
       if (data['status'] == 'success') {
         Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const DashboardScreen()));
       } else {
@@ -184,7 +172,7 @@ class _AppLoginScreenState extends State<AppLoginScreen> {
   }
 }
 
-// ==================== ۳. داشبورد اصلی ====================
+// ==================== ۳. داشبورد ====================
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
   @override
@@ -221,9 +209,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final String? accountsJson = prefs.getString('saved_accounts');
     if (accountsJson != null) {
       List<dynamic> decoded = jsonDecode(accountsJson);
-      setState(() {
-        accounts = decoded.map((e) => Map<String, String>.from(e)).toList();
-      });
+      setState(() { accounts = decoded.map((e) => Map<String, String>.from(e)).toList(); });
     }
   }
 
@@ -231,11 +217,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
     try {
       final res = await http.get(Uri.parse('$SERVER_URL/api/stats')).timeout(const Duration(seconds: 5));
       if (res.statusCode == 200) {
-        final data = jsonDecode(utf8.decode(res.bodyBytes)); // 👈 اصلاح فونت
-        setState(() {
-          totalSent = data['total_sent'];
-          runningTasks = data['running'];
-        });
+        final data = jsonDecode(utf8.decode(res.bodyBytes));
+        setState(() { totalSent = data['total_sent']; runningTasks = data['running']; });
       }
     } catch (e) {}
   }
@@ -283,9 +266,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 Text(acc['phone']!, style: const TextStyle(color: Colors.greenAccent, fontSize: 12)),
                               ]),
                               trailing: const Icon(Icons.arrow_back_ios, size: 16, color: Colors.grey),
-                              onTap: () {
-                                Navigator.push(context, MaterialPageRoute(builder: (context) => AccountDetailScreen(phone: acc['phone']!)));
-                              },
+                              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => AccountDetailScreen(phone: acc['phone']!))),
                             ),
                           );
                         },
@@ -300,9 +281,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         onPressed: () async {
           final newAccount = await Navigator.push<Map<String, String>>(context, MaterialPageRoute(builder: (context) => const AddAccountScreen()));
           if (newAccount != null) {
-            setState(() { 
-              accounts.add(newAccount); 
-            });
+            setState(() { accounts.add(newAccount); });
             _saveAccounts(); 
           }
         },
@@ -313,8 +292,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget _buildStatCard(String value, String label, IconData icon, Color iconColor) {
     return Container(
-      width: 105,
-      padding: const EdgeInsets.all(12),
+      width: 105, padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: const Color(0xFF131A22).withOpacity(0.9),
         borderRadius: BorderRadius.circular(16),
@@ -351,6 +329,17 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
   bool _isLoading = false;
   String _hash = "";
 
+  Map<String, dynamic> _parseResponse(http.Response res) {
+    try {
+      if (res.body.trim().startsWith('<')) {
+        throw Exception("سرور با خطا مواجه شد (پاسخ HTML دریافت شد).");
+      }
+      return jsonDecode(utf8.decode(res.bodyBytes));
+    } catch (e) {
+      throw Exception("خطا در خواندن پاسخ سرور: ${res.statusCode}");
+    }
+  }
+
   Future<void> _handleRequest() async {
     setState(() => _isLoading = true);
     try {
@@ -358,16 +347,16 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
         Uri.parse('$SERVER_URL/api/login/request'),
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({'phone': _phoneController.text}),
-      ).timeout(const Duration(seconds: 10));
+      ).timeout(const Duration(seconds: 15));
       
-      final data = jsonDecode(utf8.decode(res.bodyBytes)); // 👈 اصلاح فونت
+      final data = _parseResponse(res);
       if (data['status'] == 'success') {
         setState(() { _isOtpSent = true; _hash = data['hash']; });
       } else {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(data['message'])));
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('خطا: ${e.toString()}')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), duration: const Duration(seconds: 5)));
     }
     setState(() => _isLoading = false);
   }
@@ -379,22 +368,16 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
         Uri.parse('$SERVER_URL/api/login/verify'),
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({'phone': _phoneController.text, 'code': _codeController.text, 'phone_code_hash': _hash}),
-      ).timeout(const Duration(seconds: 10));
+      ).timeout(const Duration(seconds: 15));
       
-      final data = jsonDecode(utf8.decode(res.bodyBytes)); // 👈 اصلاح فونت
+      final data = _parseResponse(res);
       if (data['status'] == 'success') {
-        Navigator.pop(context, {
-          'phone': _phoneController.text.toString(),
-          'name': (data['name'] ?? 'بدون نام').toString(),
-        });
+        Navigator.pop(context, {'phone': _phoneController.text.toString(), 'name': (data['name'] ?? 'بدون نام').toString()});
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(data['message']),
-          duration: const Duration(seconds: 5),
-        ));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(data['message']), duration: const Duration(seconds: 5)));
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('خطا: ${e.toString()}')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), duration: const Duration(seconds: 5)));
     }
     setState(() => _isLoading = false);
   }
@@ -450,7 +433,8 @@ class AccountDetailScreen extends StatelessWidget {
             mainAxisSpacing: 16,
             children: [
               _buildBtn(context, 'اسپم', Icons.email, SpamScreen(phone: phone)),
-              _buildBtn(context, 'تسک‌ها', Icons.settings, const TasksScreen()),
+              // 👈 ارسال شماره اکانت به صفحه تسک‌ها
+              _buildBtn(context, 'تسک‌ها', Icons.settings, TasksScreen(phone: phone)),
               _buildBtn(context, 'ریپلای', Icons.chat, const Center(child: Text('به زودی...', style: TextStyle(color: Colors.white)))),
               _buildBtn(context, 'فوروارد', Icons.forward, ForwardScreen(phone: phone)),
             ],
@@ -486,10 +470,16 @@ class _SpamScreenState extends State<SpamScreen> {
   final _text = TextEditingController();
   final _count = TextEditingController(text: "50");
   final _speed = TextEditingController(text: "1000");
+  
   String? _selectedChat;
   String? _selectedChatName;
   List<dynamic> _chats = [];
   bool _isLoadingChats = true;
+
+  bool _isTagEnabled = false;
+  String? _selectedMemberId;
+  List<dynamic> _members = [];
+  bool _isLoadingMembers = false;
 
   @override
   void initState() {
@@ -500,36 +490,49 @@ class _SpamScreenState extends State<SpamScreen> {
   Future<void> _fetchChats() async {
     setState(() => _isLoadingChats = true);
     try {
-      final res = await http.get(Uri.parse('$SERVER_URL/api/chats/${widget.phone}')).timeout(const Duration(seconds: 10));
-      final data = jsonDecode(utf8.decode(res.bodyBytes)); // 👈 اصلاح فونت
-      if (data['status'] == 'success') {
-        setState(() { _chats = data['chats']; });
-      }
+      final res = await http.get(Uri.parse('$SERVER_URL/api/chats/${widget.phone}')).timeout(const Duration(seconds: 15));
+      final data = jsonDecode(utf8.decode(res.bodyBytes));
+      if (data['status'] == 'success') setState(() { _chats = data['chats']; });
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('خطا در دریافت گپ‌ها: ${e.toString()}')));
     }
     setState(() => _isLoadingChats = false);
   }
 
+  Future<void> _fetchMembers(String chatId) async {
+    setState(() { _isLoadingMembers = true; _members = []; _selectedMemberId = null; });
+    try {
+      final res = await http.get(Uri.parse('$SERVER_URL/api/members/${widget.phone}/$chatId')).timeout(const Duration(seconds: 20));
+      final data = jsonDecode(utf8.decode(res.bodyBytes));
+      if (data['status'] == 'success') {
+        setState(() { _members = data['members']; });
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('خطا در دریافت ممبرها: ${e.toString()}')));
+    }
+    setState(() => _isLoadingMembers = false);
+  }
+
   void _startSpam() async {
     if (_selectedChat == null) return;
+    if (_isTagEnabled && _selectedMemberId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('لطفا شخصی را برای تگ انتخاب کنید')));
+      return;
+    }
+
     try {
       final res = await http.post(
         Uri.parse('$SERVER_URL/api/task/start'),
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({
-          "account_phone": widget.phone,
-          "task_id": DateTime.now().millisecondsSinceEpoch.toString(),
-          "task_type": "spam",
-          "target_chat": _selectedChat,
-          "target_chat_name": _selectedChatName,
-          "text": _text.text,
-          "count": int.parse(_count.text),
-          "speed": int.parse(_speed.text)
+          "account_phone": widget.phone, "task_id": DateTime.now().millisecondsSinceEpoch.toString(),
+          "task_type": "spam", "target_chat": _selectedChat, "target_chat_name": _selectedChatName,
+          "target_member": _isTagEnabled ? _selectedMemberId : null,
+          "text": _text.text, "count": int.parse(_count.text), "speed": int.parse(_speed.text)
         }),
       ).timeout(const Duration(seconds: 10));
       
-      final data = jsonDecode(utf8.decode(res.bodyBytes)); // 👈 اصلاح فونت
+      final data = jsonDecode(utf8.decode(res.bodyBytes));
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(data['message'])));
       if(data['status'] == 'success') Navigator.pop(context);
     } catch (e) {
@@ -549,7 +552,6 @@ class _SpamScreenState extends State<SpamScreen> {
               children: [
                 TextField(controller: _text, style: const TextStyle(color: Colors.white), maxLines: 4, decoration: const InputDecoration(labelText: 'متن اسپم')),
                 const SizedBox(height: 16),
-                // بخش انتخاب گپ با دکمه ری‌ستارت
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
@@ -557,33 +559,47 @@ class _SpamScreenState extends State<SpamScreen> {
                       child: _isLoadingChats && _chats.isEmpty
                           ? const Center(child: Padding(padding: EdgeInsets.all(8.0), child: CircularProgressIndicator()))
                           : DropdownButtonFormField<String>(
-                              dropdownColor: const Color(0xFF131A22),
-                              style: const TextStyle(color: Colors.white, fontSize: 16),
-                              decoration: const InputDecoration(labelText: 'انتخاب گروه مقصد'),
-                              value: _selectedChat,
+                              dropdownColor: const Color(0xFF131A22), style: const TextStyle(color: Colors.white, fontSize: 16),
+                              decoration: const InputDecoration(labelText: 'انتخاب گروه مقصد'), value: _selectedChat,
                               items: _chats.map((c) => DropdownMenuItem<String>(value: c['id'].toString(), child: Text(c['title']))).toList(),
                               onChanged: (val) {
-                                setState(() {
-                                  _selectedChat = val;
-                                  _selectedChatName = _chats.firstWhere((c) => c['id'].toString() == val)['title'];
-                                });
+                                setState(() { _selectedChat = val; _selectedChatName = _chats.firstWhere((c) => c['id'].toString() == val)['title']; _isTagEnabled = false; });
                               },
                             ),
                     ),
                     const SizedBox(width: 8),
                     Container(
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF131A22).withOpacity(0.9),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: IconButton(
-                        icon: const Icon(Icons.refresh, color: Color(0xFF00FFAA)),
-                        onPressed: _fetchChats,
-                        tooltip: 'بروزرسانی لیست گپ‌ها',
-                      ),
+                      decoration: BoxDecoration(color: const Color(0xFF131A22).withOpacity(0.9), borderRadius: BorderRadius.circular(12)),
+                      child: IconButton(icon: const Icon(Icons.refresh, color: Color(0xFF00FFAA)), onPressed: _fetchChats),
                     ),
                   ],
                 ),
+                const SizedBox(height: 16),
+                Container(
+                  decoration: BoxDecoration(color: const Color(0xFF131A22).withOpacity(0.9), borderRadius: BorderRadius.circular(12)),
+                  child: SwitchListTile(
+                    title: const Text('فعال‌سازی تگ خودکار', style: TextStyle(color: Colors.white, fontSize: 14)),
+                    activeColor: const Color(0xFF00FFAA),
+                    value: _isTagEnabled,
+                    onChanged: (bool value) {
+                      setState(() {
+                        _isTagEnabled = value;
+                        if (value && _selectedChat != null) _fetchMembers(_selectedChat!);
+                      });
+                    },
+                  ),
+                ),
+                if (_isTagEnabled) ...[
+                  const SizedBox(height: 16),
+                  _isLoadingMembers
+                      ? const Center(child: Padding(padding: EdgeInsets.all(8.0), child: CircularProgressIndicator()))
+                      : DropdownButtonFormField<String>(
+                          dropdownColor: const Color(0xFF131A22), style: const TextStyle(color: Colors.white, fontSize: 16),
+                          decoration: const InputDecoration(labelText: 'انتخاب شخص برای تگ'), value: _selectedMemberId,
+                          items: _members.map((m) => DropdownMenuItem<String>(value: m['id'].toString(), child: Text(m['name'], overflow: TextOverflow.ellipsis))).toList(),
+                          onChanged: (val) => setState(() => _selectedMemberId = val),
+                        ),
+                ],
                 const SizedBox(height: 16),
                 Row(
                   children: [
@@ -596,8 +612,7 @@ class _SpamScreenState extends State<SpamScreen> {
                 SizedBox(
                   width: double.infinity, height: 50,
                   child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF00FFAA)),
-                    onPressed: _startSpam,
+                    style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF00FFAA)), onPressed: _startSpam,
                     child: const Text('شروع اسپم', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
                   ),
                 ),
@@ -639,11 +654,9 @@ class _ForwardScreenState extends State<ForwardScreen> {
   Future<void> _fetchChats() async {
     setState(() => _isLoadingChats = true);
     try {
-      final res = await http.get(Uri.parse('$SERVER_URL/api/chats/${widget.phone}')).timeout(const Duration(seconds: 10));
-      final data = jsonDecode(utf8.decode(res.bodyBytes)); // 👈 اصلاح فونت
-      if (data['status'] == 'success') {
-        setState(() { _chats = data['chats']; });
-      }
+      final res = await http.get(Uri.parse('$SERVER_URL/api/chats/${widget.phone}')).timeout(const Duration(seconds: 15));
+      final data = jsonDecode(utf8.decode(res.bodyBytes));
+      if (data['status'] == 'success') setState(() { _chats = data['chats']; });
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('خطا در دریافت گپ‌ها: ${e.toString()}')));
     }
@@ -660,19 +673,14 @@ class _ForwardScreenState extends State<ForwardScreen> {
         Uri.parse('$SERVER_URL/api/task/start'),
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({
-          "account_phone": widget.phone,
-          "task_id": DateTime.now().millisecondsSinceEpoch.toString(),
-          "task_type": "forward",
-          "source_chat": _sourceChat,
-          "target_chat": _targetChat,
-          "target_chat_name": _targetChatName,
-          "message_link": _linkController.text,
-          "count": int.parse(_count.text),
-          "speed": int.parse(_speed.text)
+          "account_phone": widget.phone, "task_id": DateTime.now().millisecondsSinceEpoch.toString(),
+          "task_type": "forward", "source_chat": _sourceChat, "target_chat": _targetChat,
+          "target_chat_name": _targetChatName, "message_link": _linkController.text,
+          "count": int.parse(_count.text), "speed": int.parse(_speed.text)
         }),
       ).timeout(const Duration(seconds: 10));
       
-      final data = jsonDecode(utf8.decode(res.bodyBytes)); // 👈 اصلاح فونت
+      final data = jsonDecode(utf8.decode(res.bodyBytes));
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(data['message'])));
       if(data['status'] == 'success') Navigator.pop(context);
     } catch (e) {
@@ -700,7 +708,6 @@ class _ForwardScreenState extends State<ForwardScreen> {
       children: [
         TextField(controller: _linkController, style: const TextStyle(color: Colors.white), decoration: const InputDecoration(labelText: 'لینک پیام برای فوروارد (مثال: https://splus.ir/c/25384148/3)')),
         const SizedBox(height: 16),
-        // بخش انتخاب گپ با دکمه ری‌ستارت
         Row(
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
@@ -708,25 +715,16 @@ class _ForwardScreenState extends State<ForwardScreen> {
               child: _isLoadingChats && _chats.isEmpty
                   ? const Center(child: Padding(padding: EdgeInsets.all(8.0), child: CircularProgressIndicator()))
                   : DropdownButtonFormField<String>(
-                      dropdownColor: const Color(0xFF131A22),
-                      style: const TextStyle(color: Colors.white, fontSize: 16),
-                      decoration: const InputDecoration(labelText: 'گپ مبدا را انتخاب کنید'),
-                      value: _sourceChat,
+                      dropdownColor: const Color(0xFF131A22), style: const TextStyle(color: Colors.white, fontSize: 16),
+                      decoration: const InputDecoration(labelText: 'گپ مبدا را انتخاب کنید'), value: _sourceChat,
                       items: _chats.map((c) => DropdownMenuItem<String>(value: c['id'].toString(), child: Text(c['title']))).toList(),
                       onChanged: (val) => setState(() => _sourceChat = val),
                     ),
             ),
             const SizedBox(width: 8),
             Container(
-              decoration: BoxDecoration(
-                color: const Color(0xFF131A22).withOpacity(0.9),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: IconButton(
-                icon: const Icon(Icons.refresh, color: Color(0xFF00FFAA)),
-                onPressed: _fetchChats,
-                tooltip: 'بروزرسانی لیست گپ‌ها',
-              ),
+              decoration: BoxDecoration(color: const Color(0xFF131A22).withOpacity(0.9), borderRadius: BorderRadius.circular(12)),
+              child: IconButton(icon: const Icon(Icons.refresh, color: Color(0xFF00FFAA)), onPressed: _fetchChats),
             ),
           ],
         ),
@@ -753,30 +751,18 @@ class _ForwardScreenState extends State<ForwardScreen> {
               child: _isLoadingChats && _chats.isEmpty
                   ? const Center(child: Padding(padding: EdgeInsets.all(8.0), child: CircularProgressIndicator()))
                   : DropdownButtonFormField<String>(
-                      dropdownColor: const Color(0xFF131A22),
-                      style: const TextStyle(color: Colors.white, fontSize: 16),
-                      decoration: const InputDecoration(labelText: 'گپ مقصد را انتخاب کنید'),
-                      value: _targetChat,
+                      dropdownColor: const Color(0xFF131A22), style: const TextStyle(color: Colors.white, fontSize: 16),
+                      decoration: const InputDecoration(labelText: 'گپ مقصد را انتخاب کنید'), value: _targetChat,
                       items: _chats.map((c) => DropdownMenuItem<String>(value: c['id'].toString(), child: Text(c['title']))).toList(),
                       onChanged: (val) {
-                        setState(() {
-                          _targetChat = val;
-                          _targetChatName = _chats.firstWhere((c) => c['id'].toString() == val)['title'];
-                        });
+                        setState(() { _targetChat = val; _targetChatName = _chats.firstWhere((c) => c['id'].toString() == val)['title']; });
                       },
                     ),
             ),
             const SizedBox(width: 8),
             Container(
-              decoration: BoxDecoration(
-                color: const Color(0xFF131A22).withOpacity(0.9),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: IconButton(
-                icon: const Icon(Icons.refresh, color: Color(0xFF00FFAA)),
-                onPressed: _fetchChats,
-                tooltip: 'بروزرسانی لیست گپ‌ها',
-              ),
+              decoration: BoxDecoration(color: const Color(0xFF131A22).withOpacity(0.9), borderRadius: BorderRadius.circular(12)),
+              child: IconButton(icon: const Icon(Icons.refresh, color: Color(0xFF00FFAA)), onPressed: _fetchChats),
             ),
           ],
         ),
@@ -802,9 +788,11 @@ class _ForwardScreenState extends State<ForwardScreen> {
   }
 }
 
-// ==================== ۸. صفحه تسک‌ها ====================
+// ==================== ۸. صفحه تسک‌ها (فیلتر شده بر اساس اکانت) ====================
 class TasksScreen extends StatefulWidget {
-  const TasksScreen({super.key});
+  final String phone; // 👈 دریافت شماره اکانت
+  const TasksScreen({super.key, required this.phone});
+  
   @override
   State<TasksScreen> createState() => _TasksScreenState();
 }
@@ -820,9 +808,16 @@ class _TasksScreenState extends State<TasksScreen> {
 
   Future<void> _fetchTasks() async {
     try {
-      final res = await http.get(Uri.parse('$SERVER_URL/api/tasks')).timeout(const Duration(seconds: 10));
-      final data = jsonDecode(utf8.decode(res.bodyBytes)); // 👈 اصلاح فونت
-      setState(() => tasks = data['tasks']);
+      final res = await http.get(Uri.parse('$SERVER_URL/api/tasks')).timeout(const Duration(seconds: 15));
+      final data = jsonDecode(utf8.decode(res.bodyBytes));
+      
+      List allTasks = data['tasks'];
+      
+      // 👈 فیلتر کردن تسک‌ها فقط برای همین اکانت
+      setState(() {
+        tasks = allTasks.where((t) => t['account'] == widget.phone).toList();
+      });
+      
     } catch (e) { print(e); }
   }
 
@@ -865,11 +860,11 @@ class _TasksScreenState extends State<TasksScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('تسک‌های فعال')),
+      appBar: AppBar(title: Text('تسک‌های ${widget.phone}')), // نمایش شماره اکانت در عنوان
       body: CustomBackground(
         child: SafeArea(
           child: tasks.isEmpty 
-              ? const Center(child: Text('هیچ تسکی در حال اجرا نیست', style: TextStyle(color: Colors.white)))
+              ? const Center(child: Text('هیچ تسکی برای این اکانت در حال اجرا نیست', style: TextStyle(color: Colors.white)))
               : ListView.builder(
                   itemCount: tasks.length,
                   itemBuilder: (context, i) {
