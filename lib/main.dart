@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart'; 
 import 'dart:convert';
 import 'dart:io';
 import 'dart:async';
@@ -10,7 +9,6 @@ void main() {
   runApp(const MyApp());
 }
 
-// 👈 آی‌پی سرور جدید شما
 const String SERVER_URL = 'http://80.244.7.90:8000'; 
 
 class MyApp extends StatelessWidget {
@@ -42,7 +40,7 @@ class MyApp extends StatelessWidget {
           focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF00FFAA))),
         ),
       ),
-      home: const AppLoginScreen(), // 👈 مستقیماً میرود به صفحه لاگین اپ
+      home: const AppLoginScreen(),
     );
   }
 }
@@ -55,7 +53,7 @@ class CustomBackground extends StatelessWidget {
     return Stack(
       children: [
         Positioned.fill(child: Image.asset('assets/bg.png', fit: BoxFit.cover)),
-        Positioned.fill(child: Container(color: Colors.black.withOpacity(0.4))),
+        Positioned.fill(child: Container(color: Colors.black.withOpacity(0.6))),
         child,
       ],
     );
@@ -70,7 +68,6 @@ class AppLoginScreen extends StatefulWidget {
 }
 
 class _AppLoginScreenState extends State<AppLoginScreen> {
-  // از قبل پر شده است
   final _userController = TextEditingController(text: "Javad");
   final _passController = TextEditingController(text: "Relpi");
   bool _isLoading = false;
@@ -109,22 +106,9 @@ class _AppLoginScreenState extends State<AppLoginScreen> {
                 const SizedBox(height: 20),
                 const Text('ورود به پنل مدیریت', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white)),
                 const SizedBox(height: 30),
-                // فیلد نام کاربری (غیرقابل ویرایش)
-                TextField(
-                  controller: _userController, 
-                  readOnly: true, // 👈 کاربر نمیتواند تغییر دهد
-                  style: const TextStyle(color: Colors.white), 
-                  decoration: const InputDecoration(labelText: 'نام کاربری', prefixIcon: Icon(Icons.person, color: Colors.grey)),
-                ),
+                TextField(controller: _userController, readOnly: true, style: const TextStyle(color: Colors.white), decoration: const InputDecoration(labelText: 'نام کاربری', prefixIcon: Icon(Icons.person, color: Colors.grey))),
                 const SizedBox(height: 16),
-                // فیلد رمز عبور (غیرقابل ویرایش)
-                TextField(
-                  controller: _passController, 
-                  readOnly: true, // 👈 کاربر نمیتواند تغییر دهد
-                  obscureText: true, 
-                  style: const TextStyle(color: Colors.white), 
-                  decoration: const InputDecoration(labelText: 'رمز عبور', prefixIcon: Icon(Icons.lock, color: Colors.grey)),
-                ),
+                TextField(controller: _passController, readOnly: true, obscureText: true, style: const TextStyle(color: Colors.white), decoration: const InputDecoration(labelText: 'رمز عبور', prefixIcon: Icon(Icons.lock, color: Colors.grey))),
                 const SizedBox(height: 30),
                 SizedBox(
                   width: double.infinity, height: 50,
@@ -151,7 +135,7 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  List<Map<String, String>> accounts = []; 
+  List<dynamic> accounts = []; 
   int totalSent = 0;
   int runningTasks = 0;
   Timer? _timer;
@@ -159,9 +143,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   void initState() {
     super.initState();
-    _loadAccounts();
-    _fetchStats();
-    _timer = Timer.periodic(const Duration(seconds: 5), (timer) => _fetchStats());
+    _fetchData();
+    _timer = Timer.periodic(const Duration(seconds: 5), (timer) => _fetchData());
   }
 
   @override
@@ -170,46 +153,51 @@ class _DashboardScreenState extends State<DashboardScreen> {
     super.dispose();
   }
 
-  Future<void> _saveAccounts() async {
-    final prefs = await SharedPreferences.getInstance();
-    prefs.setString('saved_accounts', jsonEncode(accounts));
-  }
-
-  Future<void> _loadAccounts() async {
-    final prefs = await SharedPreferences.getInstance();
-    final String? accountsJson = prefs.getString('saved_accounts');
-    if (accountsJson != null) {
-      List<dynamic> decoded = jsonDecode(accountsJson);
-      setState(() { accounts = decoded.map((e) => Map<String, String>.from(e)).toList(); });
-    }
-  }
-
-  Future<void> _fetchStats() async {
+  Future<void> _fetchData() async {
     try {
-      final res = await http.get(Uri.parse('$SERVER_URL/api/stats')).timeout(const Duration(seconds: 5));
-      if (res.statusCode == 200) {
-        final data = jsonDecode(utf8.decode(res.bodyBytes));
-        setState(() { totalSent = data['total_sent']; runningTasks = data['running']; });
+      final resAcc = await http.get(Uri.parse('$SERVER_URL/api/accounts')).timeout(const Duration(seconds: 5));
+      final resStats = await http.get(Uri.parse('$SERVER_URL/api/stats')).timeout(const Duration(seconds: 5));
+      
+      if (resAcc.statusCode == 200 && resStats.statusCode == 200) {
+        final dataAcc = jsonDecode(utf8.decode(resAcc.bodyBytes));
+        final dataStats = jsonDecode(utf8.decode(resStats.bodyBytes));
+        setState(() { 
+          accounts = dataAcc['accounts'] ?? [];
+          totalSent = dataStats['total_sent'] ?? 0;
+          runningTasks = dataStats['running'] ?? 0;
+        });
       }
     } catch (e) {}
+  }
+
+  Future<void> _deleteAccount(String phone) async {
+    bool confirm = await showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF131A22),
+        title: const Text('حذف اکانت', style: TextStyle(color: Colors.white)),
+        content: Text('آیا از حذف اکانت $phone مطمئن هستید؟', style: const TextStyle(color: Colors.white)),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('لغو', style: TextStyle(color: Colors.grey))),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('حذف', style: TextStyle(color: Colors.redAccent))),
+        ],
+      )
+    ) ?? false;
+
+    if (confirm) {
+      await http.post(
+        Uri.parse('$SERVER_URL/api/accounts/delete'),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({'phone': phone}),
+      );
+      _fetchData();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Javad Bot'),
-        actions: [
-          // 👈 دکمه مدیریت اشتراک‌ها در بالای صفحه
-          IconButton(
-            icon: const Icon(Icons.card_membership, color: Color(0xFF00FFAA)),
-            tooltip: 'مدیریت اشتراک‌ها',
-            onPressed: () {
-              Navigator.push(context, MaterialPageRoute(builder: (context) => const SubscriptionScreen()));
-            },
-          )
-        ],
-      ),
+      appBar: AppBar(title: const Text('Javad Bot')),
       body: CustomBackground(
         child: SafeArea(
           child: SingleChildScrollView(
@@ -226,7 +214,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ],
                 ),
                 const SizedBox(height: 30),
-                const Text('اکانت‌های من', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+                const Text('اکانت‌های متصل', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
                 const SizedBox(height: 16),
                 accounts.isEmpty 
                     ? const Center(child: Text('هیچ اکانتی اضافه نشده است.', style: TextStyle(color: Colors.grey)))
@@ -236,20 +224,43 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         itemCount: accounts.length,
                         itemBuilder: (context, index) {
                           final acc = accounts[index];
+                          bool isActive = acc['status'] == 'active';
+                          
                           return Card(
                             color: const Color(0xFF131A22).withOpacity(0.9),
                             margin: const EdgeInsets.only(bottom: 12),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: BorderSide(color: Colors.green.withOpacity(0.3))),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16), 
+                              side: BorderSide(color: isActive ? Colors.green.withOpacity(0.5) : Colors.redAccent.withOpacity(0.5))
+                            ),
                             child: ListTile(
-                              leading: const CircleAvatar(backgroundColor: Colors.grey, child: Icon(Icons.person, color: Colors.white)),
-                              title: Text(acc['name']!, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                              leading: CircleAvatar(
+                                backgroundColor: isActive ? Colors.green.withOpacity(0.2) : Colors.redAccent.withOpacity(0.2),
+                                child: Icon(Icons.person, color: isActive ? Colors.greenAccent : Colors.redAccent),
+                              ),
+                              title: Text(acc['name'] ?? acc['phone'], style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
                               subtitle: Row(children: [
-                                const Icon(Icons.circle, color: Colors.greenAccent, size: 10),
+                                Icon(Icons.circle, color: isActive ? Colors.greenAccent : Colors.redAccent, size: 10),
                                 const SizedBox(width: 5),
-                                Text(acc['phone']!, style: const TextStyle(color: Colors.greenAccent, fontSize: 12)),
+                                Text(isActive ? 'فعال' : 'اعتبار باطل شده', style: TextStyle(color: isActive ? Colors.greenAccent : Colors.redAccent, fontSize: 12)),
                               ]),
-                              trailing: const Icon(Icons.arrow_back_ios, size: 16, color: Colors.grey),
-                              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => AccountDetailScreen(phone: acc['phone']!))),
+                              trailing: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  IconButton(
+                                    icon: const Icon(Icons.delete, color: Colors.grey),
+                                    onPressed: () => _deleteAccount(acc['phone']),
+                                  ),
+                                  const Icon(Icons.arrow_back_ios, size: 16, color: Colors.grey),
+                                ],
+                              ),
+                              onTap: () {
+                                if (isActive) {
+                                  Navigator.push(context, MaterialPageRoute(builder: (context) => AccountDetailScreen(phone: acc['phone']!)));
+                                } else {
+                                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('این اکانت از ربات خارج شده است.')));
+                                }
+                              },
                             ),
                           );
                         },
@@ -262,11 +273,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
       floatingActionButton: FloatingActionButton(
         backgroundColor: Colors.cyanAccent,
         onPressed: () async {
-          final newAccount = await Navigator.push<Map<String, String>>(context, MaterialPageRoute(builder: (context) => const AddAccountScreen()));
-          if (newAccount != null) {
-            setState(() { accounts.add(newAccount); });
-            _saveAccounts(); 
-          }
+          bool? added = await Navigator.push<bool>(context, MaterialPageRoute(builder: (context) => const AddAccountScreen()));
+          if (added == true) _fetchData(); 
         },
         child: const Icon(Icons.add, color: Colors.black, size: 30),
       ),
@@ -280,15 +288,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
         color: const Color(0xFF131A22).withOpacity(0.9),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.grey.shade800),
-        boxShadow: [BoxShadow(color: iconColor.withOpacity(0.1), blurRadius: 10)],
       ),
       child: Column(
         children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(color: iconColor.withOpacity(0.2), borderRadius: BorderRadius.circular(8)),
-            child: Icon(icon, color: iconColor),
-          ),
+          Icon(icon, color: iconColor, size: 28),
           const SizedBox(height: 10),
           Text(value, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white)),
           Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
@@ -298,178 +301,327 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 }
 
-// ==================== ۳. صفحه مدیریت اشتراک‌ها (جدید) ====================
-class SubscriptionScreen extends StatefulWidget {
-  const SubscriptionScreen({super.key});
-  @override
-  State<SubscriptionScreen> createState() => _SubscriptionScreenState();
-}
-
-class _SubscriptionScreenState extends State<SubscriptionScreen> {
-  final _userController = TextEditingController();
-  final _passController = TextEditingController();
-  final _daysController = TextEditingController();
-  final _maxAccountsController = TextEditingController(text: "1");
-  bool _isLoading = false;
-
-  Future<void> _createSubscription() async {
-    if (_userController.text.isEmpty || _passController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('نام کاربری و رمز عبور الزامی است')));
-      return;
-    }
-
-    setState(() => _isLoading = true);
-    try {
-      final res = await http.post(
-        Uri.parse('$SERVER_URL/api/subscription/create'),
-        headers: {"Content-Type": "application/json"},
-        body: jsonEncode({
-          "username": _userController.text.trim(),
-          "password": _passController.text.trim(),
-          "days": _daysController.text.trim(),
-          "max_accounts": int.parse(_maxAccountsController.text.trim()),
-        }),
-      ).timeout(const Duration(seconds: 10));
-      
-      final data = jsonDecode(utf8.decode(res.bodyBytes));
-      if (data['status'] == 'success') {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('اشتراک با موفقیت ساخته شد')));
-        Navigator.pop(context); // بازگشت به عقب
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(data['message'])));
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('خطا: ${e.toString()}')));
-    }
-    setState(() => _isLoading = false);
-  }
+// ==================== ۳. منوی عملیات ====================
+class AccountDetailScreen extends StatelessWidget {
+  final String phone;
+  const AccountDetailScreen({super.key, required this.phone});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('مدیریت اشتراک‌ها'),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.pop(context),
-        ),
-      ),
+      appBar: AppBar(title: Text(phone)),
       body: CustomBackground(
         child: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: const Color(0xFF0A100D).withOpacity(0.95), // پس زمینه تیره مایل به سبز
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFF00FFAA).withOpacity(0.3), width: 1),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Center(
-                    child: Text(
-                      'ایجاد اشتراک جدید',
-                      style: TextStyle(color: Colors.cyanAccent, fontSize: 18, fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  
-                  _buildLabel('نام کاربری'),
-                  TextField(
-                    controller: _userController,
-                    style: const TextStyle(color: Colors.white),
-                    decoration: _buildInputDecoration(),
-                  ),
-                  const SizedBox(height: 16),
-                  
-                  _buildLabel('رمز عبور'),
-                  TextField(
-                    controller: _passController,
-                    style: const TextStyle(color: Colors.white),
-                    decoration: _buildInputDecoration(),
-                  ),
-                  const SizedBox(height: 16),
-                  
-                  _buildLabel('مدت اعتبار (روز) - خالی = نامحدود'),
-                  TextField(
-                    controller: _daysController,
-                    keyboardType: TextInputType.number,
-                    style: const TextStyle(color: Colors.white),
-                    decoration: _buildInputDecoration(hint: 'مثلا 30'),
-                  ),
-                  const SizedBox(height: 16),
-                  
-                  _buildLabel('حداکثر اکانت'),
-                  TextField(
-                    controller: _maxAccountsController,
-                    keyboardType: TextInputType.number,
-                    style: const TextStyle(color: Colors.white),
-                    decoration: _buildInputDecoration(hint: '1'),
-                  ),
-                  const SizedBox(height: 30),
-                  
-                  // دکمه گرادیانتی
-                  SizedBox(
-                    width: double.infinity,
-                    height: 50,
-                    child: InkWell(
-                      onTap: _isLoading ? null : _createSubscription,
-                      borderRadius: BorderRadius.circular(12),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFF00FFAA), Color(0xFF00BFFF)], // گرادیانت سبز به آبی
-                            begin: Alignment.centerRight,
-                            end: Alignment.centerLeft,
-                          ),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Center(
-                          child: _isLoading 
-                            ? const CircularProgressIndicator(color: Colors.black)
-                            : const Text('ایجاد اشتراک', style: TextStyle(color: Colors.black, fontSize: 16, fontWeight: FontWeight.bold)),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+          child: GridView.count(
+            crossAxisCount: 2, padding: const EdgeInsets.all(16), crossAxisSpacing: 16, mainAxisSpacing: 16,
+            children: [
+              _buildBtn(context, 'اسپم', Icons.email, SpamScreen(phone: phone)),
+              _buildBtn(context, 'تسک‌ها', Icons.settings, TasksScreen(phone: phone)),
+              _buildBtn(context, 'فوروارد', Icons.forward, ForwardScreen(phone: phone)),
+              _buildBtn(context, 'ریپلای', Icons.reply, ReplyScreen(phone: phone)),
+            ],
           ),
         ),
       ),
     );
   }
 
-  Widget _buildLabel(String text) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8.0),
-      child: Text(text, style: const TextStyle(color: Colors.grey, fontSize: 13)),
-    );
-  }
-
-  InputDecoration _buildInputDecoration({String? hint}) {
-    return InputDecoration(
-      hintText: hint,
-      hintStyle: const TextStyle(color: Colors.grey),
-      filled: true,
-      fillColor: const Color(0xFF07120A), // پس زمینه فیلدها
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
-        borderSide: BorderSide(color: const Color(0xFF00FFAA).withOpacity(0.3)),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: Color(0xFF00FFAA)),
+  Widget _buildBtn(BuildContext context, String title, IconData icon, Widget page) {
+    return InkWell(
+      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => page)),
+      child: Container(
+        decoration: BoxDecoration(color: const Color(0xFF131A22).withOpacity(0.9), borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.green.withOpacity(0.3))),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [Icon(icon, size: 40, color: Colors.white), const SizedBox(height: 12), Text(title, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white))],
+        ),
       ),
     );
   }
 }
 
-// ==================== ۴. افزودن اکانت (بقیه کدها بدون تغییر) ====================
+// ==================== ۴. صفحه ریپلای ====================
+class ReplyScreen extends StatefulWidget {
+  final String phone;
+  const ReplyScreen({super.key, required this.phone});
+  @override
+  State<ReplyScreen> createState() => _ReplyScreenState();
+}
+
+class _ReplyScreenState extends State<ReplyScreen> {
+  String _replyType = "user"; // پیش‌فرض روی کاربر
+  final _linkController = TextEditingController();
+  final _textController = TextEditingController();
+  final _countController = TextEditingController(text: "1"); // تعداد پاسخ برای هر پیام
+  final _speedController = TextEditingController(text: "1000");
+
+  String? _selectedChatId;
+  String? _selectedChatName;
+  String? _selectedMemberId;
+  String? _selectedMemberName;
+  
+  List<dynamic> _chats = [];
+  bool _isLoadingChats = true;
+  List<dynamic> _members = [];
+  bool _isLoadingMembers = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchChats();
+  }
+
+  Future<void> _fetchChats() async {
+    setState(() => _isLoadingChats = true);
+    try {
+      final res = await http.get(Uri.parse('$SERVER_URL/api/chats/${widget.phone}')).timeout(const Duration(seconds: 15));
+      final data = jsonDecode(utf8.decode(res.bodyBytes));
+      if (data['status'] == 'success') setState(() { _chats = data['chats']; });
+    } catch (e) {}
+    setState(() => _isLoadingChats = false);
+  }
+
+  Future<void> _fetchMembers() async {
+    if (_selectedChatId == null) return;
+    setState(() { _isLoadingMembers = true; _members = []; });
+    try {
+      final res = await http.get(Uri.parse('$SERVER_URL/api/members/${widget.phone}/$_selectedChatId')).timeout(const Duration(seconds: 30));
+      final data = jsonDecode(utf8.decode(res.bodyBytes));
+      if (data['status'] == 'success') {
+        setState(() { _members = data['members']; });
+        _showMemberSelectionBottomSheet();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(data['message'] ?? 'خطا در دریافت ممبرها')));
+      }
+    } catch (e) {}
+    setState(() => _isLoadingMembers = false);
+  }
+
+  void _showMemberSelectionBottomSheet() {
+    String searchQuery = "";
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF131A22),
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final filtered = _members.where((m) => m['name'].toString().toLowerCase().contains(searchQuery.toLowerCase())).toList();
+            return Container(
+              height: MediaQuery.of(context).size.height * 0.7,
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  const Text('انتخاب کاربر برای ریپلای', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 16),
+                  TextField(
+                    style: const TextStyle(color: Colors.white),
+                    decoration: const InputDecoration(labelText: 'جستجو...', prefixIcon: Icon(Icons.search, color: Colors.grey)),
+                    onChanged: (val) => setModalState(() => searchQuery = val),
+                  ),
+                  const SizedBox(height: 16),
+                  Expanded(
+                    child: filtered.isEmpty 
+                      ? const Center(child: Text('یافت نشد', style: TextStyle(color: Colors.grey)))
+                      : ListView.builder(
+                          itemCount: filtered.length,
+                          itemBuilder: (context, i) {
+                            final m = filtered[i];
+                            return ListTile(
+                              leading: const Icon(Icons.person, color: Colors.cyanAccent),
+                              title: Text(m['name'], style: const TextStyle(color: Colors.white)),
+                              subtitle: Text(m['username'] != "" ? "@${m['username']}" : m['id'], style: const TextStyle(color: Colors.grey)),
+                              onTap: () {
+                                setState(() { _selectedMemberId = m['id'].toString(); _selectedMemberName = m['name']; });
+                                Navigator.pop(context);
+                              },
+                            );
+                          },
+                        ),
+                  )
+                ],
+              ),
+            );
+          }
+        );
+      }
+    );
+  }
+
+  void _startReply() async {
+    if (_replyType == "link" && _linkController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('لینک پیام را وارد کنید')));
+      return;
+    }
+    if (_replyType == "user" && _selectedMemberId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('کاربر را انتخاب کنید')));
+      return;
+    }
+    if (_textController.text.isEmpty || _selectedChatId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('متن و گروه را وارد کنید')));
+      return;
+    }
+
+    try {
+      final taskType = _replyType == "link" ? "reply_link" : "reply_user";
+      final res = await http.post(
+        Uri.parse('$SERVER_URL/api/task/start'),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({
+          "account_phone": widget.phone, "task_id": DateTime.now().millisecondsSinceEpoch.toString(),
+          "task_type": taskType, 
+          "target_chat": _selectedChatId, 
+          "target_chat_name": _selectedChatName,
+          "text": _textController.text, 
+          "message_link": _replyType == "link" ? _linkController.text : null,
+          "target_member": _replyType == "user" ? _selectedMemberId : null,
+          "count": int.parse(_countController.text), 
+          "speed": int.parse(_speedController.text)
+        }),
+      ).timeout(const Duration(seconds: 10));
+      
+      final data = jsonDecode(utf8.decode(res.bodyBytes));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(data['message'])));
+      if(data['status'] == 'success') Navigator.pop(context);
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('خطا: ${e.toString()}')));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('تنظیم ریپلای')),
+      body: CustomBackground(
+        child: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('متن ریپلای:', style: TextStyle(color: Colors.white, fontSize: 16)),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: _textController, maxLines: 3,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: const InputDecoration(hintText: 'متن پاسخ خودکار...'),
+                ),
+                const SizedBox(height: 20),
+                
+                // انتخاب نوع ریپلای
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    Expanded(
+                      child: RadioListTile<String>(
+                        title: const Text('روی لینک پیام', style: TextStyle(color: Colors.white, fontSize: 14)),
+                        value: "link", groupValue: _replyType,
+                        activeColor: const Color(0xFF00FFAA),
+                        onChanged: (val) => setState(() => _replyType = val!),
+                      ),
+                    ),
+                    Expanded(
+                      child: RadioListTile<String>(
+                        title: const Text('روی کاربر گروه', style: TextStyle(color: Colors.white, fontSize: 14)),
+                        value: "user", groupValue: _replyType,
+                        activeColor: const Color(0xFF00FFAA),
+                        onChanged: (val) => setState(() => _replyType = val!),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+
+                if (_replyType == "link") ...[
+                  const Text('لینک پیام هدف:', style: TextStyle(color: Colors.white, fontSize: 14)),
+                  const SizedBox(height: 8),
+                  TextField(controller: _linkController, style: const TextStyle(color: Colors.white, direction: TextDirection.ltr), decoration: const InputDecoration(hintText: 'https://splus.ir/c/123...')),
+                  const SizedBox(height: 16),
+                ],
+
+                // انتخاب گروه
+                const Text('گروه مقصد:', style: TextStyle(color: Colors.white, fontSize: 14)),
+                const SizedBox(height: 8),
+                DropdownButtonFormField<String>(
+                  dropdownColor: const Color(0xFF131A22), 
+                  style: const TextStyle(color: Colors.white),
+                  decoration: const InputDecoration(hintText: 'انتخاب کنید...'),
+                  value: _selectedChatId,
+                  items: _chats.map((c) => DropdownMenuItem<String>(value: c['id'].toString(), child: Text(c['title']))).toList(),
+                  onChanged: (val) {
+                    setState(() { 
+                      _selectedChatId = val; 
+                      _selectedChatName = _chats.firstWhere((c) => c['id'].toString() == val)['title'];
+                      _selectedMemberId = null; _selectedMemberName = null; 
+                    });
+                  },
+                ),
+                const SizedBox(height: 16),
+
+                // انتخاب کاربر (اگر حالت user باشد)
+                if (_replyType == "user") ...[
+                  const Text('کاربر هدف (برای مانیتور کردن):', style: TextStyle(color: Colors.white, fontSize: 14)),
+                  const SizedBox(height: 8),
+                  InkWell(
+                    onTap: _isLoadingMembers ? null : () {
+                      if (_members.isEmpty) _fetchMembers(); else _showMemberSelectionBottomSheet();
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(color: const Color(0xFF131A22), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey.shade800)),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(_selectedMemberName ?? 'انتخاب کاربر...', style: TextStyle(color: _selectedMemberName != null ? Colors.white : Colors.grey)),
+                          _isLoadingMembers ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF00FFAA))) : const Icon(Icons.arrow_drop_down, color: Colors.grey),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _countController, 
+                        style: const TextStyle(color: Colors.white), 
+                        keyboardType: TextInputType.number, 
+                        decoration: const InputDecoration(labelText: 'تعداد پاسخ برای هر پیام')
+                      )
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: TextField(
+                        controller: _speedController, 
+                        style: const TextStyle(color: Colors.white), 
+                        keyboardType: TextInputType.number, 
+                        decoration: const InputDecoration(labelText: 'سرعت (ms)')
+                      )
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 30),
+                SizedBox(
+                  width: double.infinity, height: 50,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF00FFAA)), 
+                    onPressed: _startReply,
+                    child: const Text('شروع ریپلای', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 16)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ==================== ۵. افزودن اکانت ====================
 class AddAccountScreen extends StatefulWidget {
   const AddAccountScreen({super.key});
   @override
@@ -483,17 +635,6 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
   bool _isLoading = false;
   String _hash = "";
 
-  Map<String, dynamic> _parseResponse(http.Response res) {
-    try {
-      if (res.body.trim().startsWith('<')) {
-        throw Exception("سرور با خطا مواجه شد (پاسخ HTML دریافت شد).");
-      }
-      return jsonDecode(utf8.decode(res.bodyBytes));
-    } catch (e) {
-      throw Exception("خطا در خواندن پاسخ سرور: ${res.statusCode}");
-    }
-  }
-
   Future<void> _handleRequest() async {
     setState(() => _isLoading = true);
     try {
@@ -503,14 +644,14 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
         body: jsonEncode({'phone': _phoneController.text}),
       ).timeout(const Duration(seconds: 15));
       
-      final data = _parseResponse(res);
+      final data = jsonDecode(utf8.decode(res.bodyBytes));
       if (data['status'] == 'success') {
         setState(() { _isOtpSent = true; _hash = data['hash']; });
       } else {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(data['message'])));
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), duration: const Duration(seconds: 5)));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('خطا: ${e.toString()}')));
     }
     setState(() => _isLoading = false);
   }
@@ -524,14 +665,14 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
         body: jsonEncode({'phone': _phoneController.text, 'code': _codeController.text, 'phone_code_hash': _hash}),
       ).timeout(const Duration(seconds: 15));
       
-      final data = _parseResponse(res);
+      final data = jsonDecode(utf8.decode(res.bodyBytes));
       if (data['status'] == 'success') {
-        Navigator.pop(context, {'phone': _phoneController.text.toString(), 'name': (data['name'] ?? 'بدون نام').toString()});
+        Navigator.pop(context, true); 
       } else {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(data['message']), duration: const Duration(seconds: 5)));
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), duration: const Duration(seconds: 5)));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('خطا: ${e.toString()}')));
     }
     setState(() => _isLoading = false);
   }
@@ -546,7 +687,7 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
             padding: const EdgeInsets.all(24.0),
             child: Column(
               children: [
-                TextField(controller: _phoneController, style: const TextStyle(color: Colors.white), keyboardType: TextInputType.phone, decoration: const InputDecoration(labelText: 'شماره تلفن با 0 (مثال: 09123456789)')),
+                TextField(controller: _phoneController, style: const TextStyle(color: Colors.white), keyboardType: TextInputType.phone, decoration: const InputDecoration(labelText: 'شماره تلفن با 0')),
                 if (_isOtpSent) ...[
                   const SizedBox(height: 16),
                   TextField(controller: _codeController, style: const TextStyle(color: Colors.white), keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'کد تایید')),
@@ -569,48 +710,6 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
   }
 }
 
-// ==================== ۵. منوی عملیات ====================
-class AccountDetailScreen extends StatelessWidget {
-  final String phone;
-  const AccountDetailScreen({super.key, required this.phone});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text(phone)),
-      body: CustomBackground(
-        child: SafeArea(
-          child: GridView.count(
-            crossAxisCount: 2,
-            padding: const EdgeInsets.all(16),
-            crossAxisSpacing: 16,
-            mainAxisSpacing: 16,
-            children: [
-              _buildBtn(context, 'اسپم', Icons.email, SpamScreen(phone: phone)),
-              _buildBtn(context, 'تسک‌ها', Icons.settings, TasksScreen(phone: phone)),
-              _buildBtn(context, 'ریپلای', Icons.chat, const Center(child: Text('به زودی...', style: TextStyle(color: Colors.white)))),
-              _buildBtn(context, 'فوروارد', Icons.forward, ForwardScreen(phone: phone)),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBtn(BuildContext context, String title, IconData icon, Widget page) {
-    return InkWell(
-      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => page)),
-      child: Container(
-        decoration: BoxDecoration(color: const Color(0xFF131A22).withOpacity(0.9), borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.green.withOpacity(0.3))),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [Icon(icon, size: 40, color: Colors.white), const SizedBox(height: 12), Text(title, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white))],
-        ),
-      ),
-    );
-  }
-}
-
 // ==================== ۶. صفحه اسپم ====================
 class SpamScreen extends StatefulWidget {
   final String phone;
@@ -623,16 +722,9 @@ class _SpamScreenState extends State<SpamScreen> {
   final _text = TextEditingController();
   final _count = TextEditingController(text: "50");
   final _speed = TextEditingController(text: "1000");
-  
   String? _selectedChat;
-  String? _selectedChatName;
   List<dynamic> _chats = [];
   bool _isLoadingChats = true;
-
-  bool _isTagEnabled = false;
-  String? _selectedMemberId;
-  List<dynamic> _members = [];
-  bool _isLoadingMembers = false;
 
   @override
   void initState() {
@@ -646,51 +738,27 @@ class _SpamScreenState extends State<SpamScreen> {
       final res = await http.get(Uri.parse('$SERVER_URL/api/chats/${widget.phone}')).timeout(const Duration(seconds: 15));
       final data = jsonDecode(utf8.decode(res.bodyBytes));
       if (data['status'] == 'success') setState(() { _chats = data['chats']; });
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('خطا در دریافت گپ‌ها: ${e.toString()}')));
-    }
+    } catch (e) {}
     setState(() => _isLoadingChats = false);
-  }
-
-  Future<void> _fetchMembers(String chatId) async {
-    setState(() { _isLoadingMembers = true; _members = []; _selectedMemberId = null; });
-    try {
-      final res = await http.get(Uri.parse('$SERVER_URL/api/members/${widget.phone}/$chatId')).timeout(const Duration(seconds: 20));
-      final data = jsonDecode(utf8.decode(res.bodyBytes));
-      if (data['status'] == 'success') {
-        setState(() { _members = data['members']; });
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('خطا در دریافت ممبرها: ${e.toString()}')));
-    }
-    setState(() => _isLoadingMembers = false);
   }
 
   void _startSpam() async {
     if (_selectedChat == null) return;
-    if (_isTagEnabled && _selectedMemberId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('لطفا شخصی را برای تگ انتخاب کنید')));
-      return;
-    }
-
     try {
       final res = await http.post(
         Uri.parse('$SERVER_URL/api/task/start'),
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({
           "account_phone": widget.phone, "task_id": DateTime.now().millisecondsSinceEpoch.toString(),
-          "task_type": "spam", "target_chat": _selectedChat, "target_chat_name": _selectedChatName,
-          "target_member": _isTagEnabled ? _selectedMemberId : null,
-          "text": _text.text, "count": int.parse(_count.text), "speed": int.parse(_speed.text)
+          "task_type": "spam", "target_chat": _selectedChat, "text": _text.text, 
+          "count": int.parse(_count.text), "speed": int.parse(_speed.text)
         }),
       ).timeout(const Duration(seconds: 10));
       
       final data = jsonDecode(utf8.decode(res.bodyBytes));
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(data['message'])));
       if(data['status'] == 'success') Navigator.pop(context);
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('خطا: ${e.toString()}')));
-    }
+    } catch (e) {}
   }
 
   @override
@@ -705,58 +773,18 @@ class _SpamScreenState extends State<SpamScreen> {
               children: [
                 TextField(controller: _text, style: const TextStyle(color: Colors.white), maxLines: 4, decoration: const InputDecoration(labelText: 'متن اسپم')),
                 const SizedBox(height: 16),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Expanded(
-                      child: _isLoadingChats && _chats.isEmpty
-                          ? const Center(child: Padding(padding: EdgeInsets.all(8.0), child: CircularProgressIndicator()))
-                          : DropdownButtonFormField<String>(
-                              dropdownColor: const Color(0xFF131A22), style: const TextStyle(color: Colors.white, fontSize: 16),
-                              decoration: const InputDecoration(labelText: 'انتخاب گروه مقصد'), value: _selectedChat,
-                              items: _chats.map((c) => DropdownMenuItem<String>(value: c['id'].toString(), child: Text(c['title']))).toList(),
-                              onChanged: (val) {
-                                setState(() { _selectedChat = val; _selectedChatName = _chats.firstWhere((c) => c['id'].toString() == val)['title']; _isTagEnabled = false; });
-                              },
-                            ),
+                _isLoadingChats && _chats.isEmpty
+                  ? const CircularProgressIndicator()
+                  : DropdownButtonFormField<String>(
+                      dropdownColor: const Color(0xFF131A22), style: const TextStyle(color: Colors.white),
+                      decoration: const InputDecoration(labelText: 'گروه مقصد'), value: _selectedChat,
+                      items: _chats.map((c) => DropdownMenuItem<String>(value: c['id'].toString(), child: Text(c['title']))).toList(),
+                      onChanged: (val) => setState(() => _selectedChat = val),
                     ),
-                    const SizedBox(width: 8),
-                    Container(
-                      decoration: BoxDecoration(color: const Color(0xFF131A22).withOpacity(0.9), borderRadius: BorderRadius.circular(12)),
-                      child: IconButton(icon: const Icon(Icons.refresh, color: Color(0xFF00FFAA)), onPressed: _fetchChats),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                Container(
-                  decoration: BoxDecoration(color: const Color(0xFF131A22).withOpacity(0.9), borderRadius: BorderRadius.circular(12)),
-                  child: SwitchListTile(
-                    title: const Text('فعال‌سازی تگ خودکار', style: TextStyle(color: Colors.white, fontSize: 14)),
-                    activeColor: const Color(0xFF00FFAA),
-                    value: _isTagEnabled,
-                    onChanged: (bool value) {
-                      setState(() {
-                        _isTagEnabled = value;
-                        if (value && _selectedChat != null) _fetchMembers(_selectedChat!);
-                      });
-                    },
-                  ),
-                ),
-                if (_isTagEnabled) ...[
-                  const SizedBox(height: 16),
-                  _isLoadingMembers
-                      ? const Center(child: Padding(padding: EdgeInsets.all(8.0), child: CircularProgressIndicator()))
-                      : DropdownButtonFormField<String>(
-                          dropdownColor: const Color(0xFF131A22), style: const TextStyle(color: Colors.white, fontSize: 16),
-                          decoration: const InputDecoration(labelText: 'انتخاب شخص برای تگ'), value: _selectedMemberId,
-                          items: _members.map((m) => DropdownMenuItem<String>(value: m['id'].toString(), child: Text(m['name'], overflow: TextOverflow.ellipsis))).toList(),
-                          onChanged: (val) => setState(() => _selectedMemberId = val),
-                        ),
-                ],
                 const SizedBox(height: 16),
                 Row(
                   children: [
-                    Expanded(child: TextField(controller: _count, style: const TextStyle(color: Colors.white), keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'تعداد (0 = بی‌نهایت)'))),
+                    Expanded(child: TextField(controller: _count, style: const TextStyle(color: Colors.white), keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'تعداد'))),
                     const SizedBox(width: 16),
                     Expanded(child: TextField(controller: _speed, style: const TextStyle(color: Colors.white), keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'سرعت (ms)'))),
                   ],
@@ -794,7 +822,6 @@ class _ForwardScreenState extends State<ForwardScreen> {
   
   String? _sourceChat;
   String? _targetChat;
-  String? _targetChatName;
   List<dynamic> _chats = [];
   bool _isLoadingChats = true;
 
@@ -810,17 +837,12 @@ class _ForwardScreenState extends State<ForwardScreen> {
       final res = await http.get(Uri.parse('$SERVER_URL/api/chats/${widget.phone}')).timeout(const Duration(seconds: 15));
       final data = jsonDecode(utf8.decode(res.bodyBytes));
       if (data['status'] == 'success') setState(() { _chats = data['chats']; });
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('خطا در دریافت گپ‌ها: ${e.toString()}')));
-    }
+    } catch (e) {}
     setState(() => _isLoadingChats = false);
   }
 
   void _startForward() async {
-    if (_sourceChat == null || _targetChat == null || _linkController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('لطفا همه فیلدها را پر کنید')));
-      return;
-    }
+    if (_sourceChat == null || _targetChat == null || _linkController.text.isEmpty) return;
     try {
       final res = await http.post(
         Uri.parse('$SERVER_URL/api/task/start'),
@@ -828,17 +850,14 @@ class _ForwardScreenState extends State<ForwardScreen> {
         body: jsonEncode({
           "account_phone": widget.phone, "task_id": DateTime.now().millisecondsSinceEpoch.toString(),
           "task_type": "forward", "source_chat": _sourceChat, "target_chat": _targetChat,
-          "target_chat_name": _targetChatName, "message_link": _linkController.text,
-          "count": int.parse(_count.text), "speed": int.parse(_speed.text)
+          "message_link": _linkController.text, "count": int.parse(_count.text), "speed": int.parse(_speed.text)
         }),
       ).timeout(const Duration(seconds: 10));
       
       final data = jsonDecode(utf8.decode(res.bodyBytes));
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(data['message'])));
       if(data['status'] == 'success') Navigator.pop(context);
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('خطا: ${e.toString()}')));
-    }
+    } catch (e) {}
   }
 
   @override
@@ -859,28 +878,16 @@ class _ForwardScreenState extends State<ForwardScreen> {
   Widget _buildStep1() {
     return Column(
       children: [
-        TextField(controller: _linkController, style: const TextStyle(color: Colors.white), decoration: const InputDecoration(labelText: 'لینک پیام برای فوروارد (مثال: https://splus.ir/c/25384148/3)')),
+        TextField(controller: _linkController, style: const TextStyle(color: Colors.white), decoration: const InputDecoration(labelText: 'لینک پیام برای فوروارد')),
         const SizedBox(height: 16),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Expanded(
-              child: _isLoadingChats && _chats.isEmpty
-                  ? const Center(child: Padding(padding: EdgeInsets.all(8.0), child: CircularProgressIndicator()))
-                  : DropdownButtonFormField<String>(
-                      dropdownColor: const Color(0xFF131A22), style: const TextStyle(color: Colors.white, fontSize: 16),
-                      decoration: const InputDecoration(labelText: 'گپ مبدا را انتخاب کنید'), value: _sourceChat,
-                      items: _chats.map((c) => DropdownMenuItem<String>(value: c['id'].toString(), child: Text(c['title']))).toList(),
-                      onChanged: (val) => setState(() => _sourceChat = val),
-                    ),
+        _isLoadingChats && _chats.isEmpty
+          ? const CircularProgressIndicator()
+          : DropdownButtonFormField<String>(
+              dropdownColor: const Color(0xFF131A22), style: const TextStyle(color: Colors.white),
+              decoration: const InputDecoration(labelText: 'گپ مبدا'), value: _sourceChat,
+              items: _chats.map((c) => DropdownMenuItem<String>(value: c['id'].toString(), child: Text(c['title']))).toList(),
+              onChanged: (val) => setState(() => _sourceChat = val),
             ),
-            const SizedBox(width: 8),
-            Container(
-              decoration: BoxDecoration(color: const Color(0xFF131A22).withOpacity(0.9), borderRadius: BorderRadius.circular(12)),
-              child: IconButton(icon: const Icon(Icons.refresh, color: Color(0xFF00FFAA)), onPressed: _fetchChats),
-            ),
-          ],
-        ),
         const Spacer(),
         SizedBox(
           width: double.infinity, height: 50,
@@ -897,32 +904,16 @@ class _ForwardScreenState extends State<ForwardScreen> {
   Widget _buildStep2() {
     return Column(
       children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Expanded(
-              child: _isLoadingChats && _chats.isEmpty
-                  ? const Center(child: Padding(padding: EdgeInsets.all(8.0), child: CircularProgressIndicator()))
-                  : DropdownButtonFormField<String>(
-                      dropdownColor: const Color(0xFF131A22), style: const TextStyle(color: Colors.white, fontSize: 16),
-                      decoration: const InputDecoration(labelText: 'گپ مقصد را انتخاب کنید'), value: _targetChat,
-                      items: _chats.map((c) => DropdownMenuItem<String>(value: c['id'].toString(), child: Text(c['title']))).toList(),
-                      onChanged: (val) {
-                        setState(() { _targetChat = val; _targetChatName = _chats.firstWhere((c) => c['id'].toString() == val)['title']; });
-                      },
-                    ),
-            ),
-            const SizedBox(width: 8),
-            Container(
-              decoration: BoxDecoration(color: const Color(0xFF131A22).withOpacity(0.9), borderRadius: BorderRadius.circular(12)),
-              child: IconButton(icon: const Icon(Icons.refresh, color: Color(0xFF00FFAA)), onPressed: _fetchChats),
-            ),
-          ],
+        DropdownButtonFormField<String>(
+          dropdownColor: const Color(0xFF131A22), style: const TextStyle(color: Colors.white),
+          decoration: const InputDecoration(labelText: 'گپ مقصد'), value: _targetChat,
+          items: _chats.map((c) => DropdownMenuItem<String>(value: c['id'].toString(), child: Text(c['title']))).toList(),
+          onChanged: (val) => setState(() => _targetChat = val),
         ),
         const SizedBox(height: 16),
         Row(
           children: [
-            Expanded(child: TextField(controller: _count, style: const TextStyle(color: Colors.white), keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'تعداد (0 = بی‌نهایت)'))),
+            Expanded(child: TextField(controller: _count, style: const TextStyle(color: Colors.white), keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'تعداد'))),
             const SizedBox(width: 16),
             Expanded(child: TextField(controller: _speed, style: const TextStyle(color: Colors.white), keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'سرعت (ms)'))),
           ],
@@ -945,7 +936,6 @@ class _ForwardScreenState extends State<ForwardScreen> {
 class TasksScreen extends StatefulWidget {
   final String phone;
   const TasksScreen({super.key, required this.phone});
-  
   @override
   State<TasksScreen> createState() => _TasksScreenState();
 }
@@ -963,50 +953,9 @@ class _TasksScreenState extends State<TasksScreen> {
     try {
       final res = await http.get(Uri.parse('$SERVER_URL/api/tasks')).timeout(const Duration(seconds: 15));
       final data = jsonDecode(utf8.decode(res.bodyBytes));
-      
       List allTasks = data['tasks'];
-      
-      setState(() {
-        tasks = allTasks.where((t) => t['account'] == widget.phone).toList();
-      });
-      
-    } catch (e) { print(e); }
-  }
-
-  void _editTask(String taskId, int currentCount, int currentSpeed) {
-    final countCtrl = TextEditingController(text: currentCount.toString());
-    final speedCtrl = TextEditingController(text: currentSpeed.toString());
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF131A22),
-        title: const Text('ویرایش تسک', style: TextStyle(color: Colors.white)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(controller: countCtrl, style: const TextStyle(color: Colors.white), keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'تعداد جدید')),
-            const SizedBox(height: 10),
-            TextField(controller: speedCtrl, style: const TextStyle(color: Colors.white), keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'سرعت جدید (ms)')),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () async {
-              await http.post(
-                Uri.parse('$SERVER_URL/api/task/update/$taskId'),
-                headers: {"Content-Type": "application/json"},
-                body: jsonEncode({"count": int.parse(countCtrl.text), "speed": int.parse(speedCtrl.text)}),
-              );
-              Navigator.pop(context);
-              _fetchTasks();
-            },
-            child: const Text('ذخیره', style: TextStyle(color: Color(0xFF00FFAA))),
-          ),
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('لغو', style: TextStyle(color: Colors.grey))),
-        ],
-      ),
-    );
+      setState(() { tasks = allTasks.where((t) => t['account'] == widget.phone).toList(); });
+    } catch (e) {}
   }
 
   @override
@@ -1016,7 +965,7 @@ class _TasksScreenState extends State<TasksScreen> {
       body: CustomBackground(
         child: SafeArea(
           child: tasks.isEmpty 
-              ? const Center(child: Text('هیچ تسکی برای این اکانت در حال اجرا نیست', style: TextStyle(color: Colors.white)))
+              ? const Center(child: Text('هیچ تسکی در حال اجرا نیست', style: TextStyle(color: Colors.white)))
               : ListView.builder(
                   itemCount: tasks.length,
                   itemBuilder: (context, i) {
@@ -1025,14 +974,10 @@ class _TasksScreenState extends State<TasksScreen> {
                       color: const Color(0xFF131A22).withOpacity(0.9),
                       child: ListTile(
                         title: Text(t['chat_name'] ?? 'نامشخص', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                        subtitle: Text('${t['type']} | تعداد: ${t['count']} | سرعت: ${t['speed']}', style: const TextStyle(color: Colors.grey)),
+                        subtitle: Text('نوع: ${t['type']} | تعداد: ${t['count']} | سرعت: ${t['speed']}', style: const TextStyle(color: Colors.grey)),
                         trailing: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            IconButton(
-                              icon: const Icon(Icons.edit, color: Colors.blueAccent),
-                              onPressed: () => _editTask(t['id'], t['count'], t['speed']),
-                            ),
                             IconButton(
                               icon: const Icon(Icons.delete, color: Colors.redAccent),
                               onPressed: () async {
