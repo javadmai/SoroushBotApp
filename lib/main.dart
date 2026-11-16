@@ -536,7 +536,12 @@ class _ReplyScreenState extends State<ReplyScreen> {
                 if (_replyType == "link") ...[
                   const Text('لینک پیام هدف:', style: TextStyle(color: Colors.white, fontSize: 14)),
                   const SizedBox(height: 8),
-                  TextField(controller: _linkController, style: const TextStyle(color: Colors.white, direction: TextDirection.ltr), decoration: const InputDecoration(hintText: 'https://splus.ir/c/123...')),
+                  TextField(
+  controller: _linkController, 
+  style: const TextStyle(color: Colors.white), 
+  textDirection: TextDirection.ltr, 
+  decoration: const InputDecoration(hintText: 'https://splus.ir/c/123...')
+),
                   const SizedBox(height: 16),
                 ],
 
