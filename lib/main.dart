@@ -34,10 +34,10 @@ class MyApp extends StatelessWidget {
           iconTheme: IconThemeData(color: Colors.white),
         ),
         inputDecorationTheme: InputDecorationTheme(
-          filled: true, fillColor: const Color(0xFF131A22).withOpacity(0.9), 
-          labelStyle: const TextStyle(color: Colors.grey),
+          filled: true, fillColor: Color(0xFF131A22), 
+          labelStyle: TextStyle(color: Colors.grey),
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF00FFAA))),
+          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Color(0xFF00FFAA))),
         ),
       ),
       home: const AppLoginScreen(),
@@ -85,7 +85,7 @@ class _AppLoginScreenState extends State<AppLoginScreen> {
       if (data['status'] == 'success') {
         Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const DashboardScreen()));
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(data['message'])));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(data['message'] ?? 'خطا')));
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('خطا: ${e.toString()}')));
@@ -197,7 +197,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Javad Bot')),
+      appBar: AppBar(
+        title: const Text('Javad Bot'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.card_membership, color: Color(0xFF00FFAA)),
+            tooltip: 'مدیریت اشتراک‌ها',
+            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const SubscriptionScreen())),
+          )
+        ],
+      ),
       body: CustomBackground(
         child: SafeArea(
           child: SingleChildScrollView(
@@ -352,7 +361,7 @@ class _ReplyScreenState extends State<ReplyScreen> {
   String _replyType = "user"; // پیش‌فرض روی کاربر
   final _linkController = TextEditingController();
   final _textController = TextEditingController();
-  final _countController = TextEditingController(text: "1"); // تعداد پاسخ برای هر پیام
+  final _countController = TextEditingController(text: "1"); 
   final _speedController = TextEditingController(text: "1000");
 
   String? _selectedChatId;
@@ -509,7 +518,6 @@ class _ReplyScreenState extends State<ReplyScreen> {
                 ),
                 const SizedBox(height: 20),
                 
-                // انتخاب نوع ریپلای
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
@@ -537,15 +545,14 @@ class _ReplyScreenState extends State<ReplyScreen> {
                   const Text('لینک پیام هدف:', style: TextStyle(color: Colors.white, fontSize: 14)),
                   const SizedBox(height: 8),
                   TextField(
-  controller: _linkController, 
-  style: const TextStyle(color: Colors.white), 
-  textDirection: TextDirection.ltr, 
-  decoration: const InputDecoration(hintText: 'https://splus.ir/c/123...')
-),
+                    controller: _linkController, 
+                    style: const TextStyle(color: Colors.white), 
+                    textDirection: TextDirection.ltr, 
+                    decoration: const InputDecoration(hintText: 'https://splus.ir/c/123...')
+                  ),
                   const SizedBox(height: 16),
                 ],
 
-                // انتخاب گروه
                 const Text('گروه مقصد:', style: TextStyle(color: Colors.white, fontSize: 14)),
                 const SizedBox(height: 8),
                 DropdownButtonFormField<String>(
@@ -564,7 +571,6 @@ class _ReplyScreenState extends State<ReplyScreen> {
                 ),
                 const SizedBox(height: 16),
 
-                // انتخاب کاربر (اگر حالت user باشد)
                 if (_replyType == "user") ...[
                   const Text('کاربر هدف (برای مانیتور کردن):', style: TextStyle(color: Colors.white, fontSize: 14)),
                   const SizedBox(height: 8),
@@ -650,13 +656,20 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
       ).timeout(const Duration(seconds: 15));
       
       final data = jsonDecode(utf8.decode(res.bodyBytes));
+      
       if (data['status'] == 'success') {
-        setState(() { _isOtpSent = true; _hash = data['hash']; });
+        String? receivedHash = data['hash']?.toString();
+        if (receivedHash == null || receivedHash.isEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('خطا: سرور هش را برنگرداند. (شماره نامعتبر است)')));
+        } else {
+          setState(() { _isOtpSent = true; _hash = receivedHash; });
+        }
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(data['message'])));
+        String errorMsg = data['message']?.toString() ?? 'خطای نامشخص از سرور';
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errorMsg)));
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('خطا: ${e.toString()}')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('خطای شبکه: ${e.toString()}')));
     }
     setState(() => _isLoading = false);
   }
@@ -674,7 +687,8 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
       if (data['status'] == 'success') {
         Navigator.pop(context, true); 
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(data['message']), duration: const Duration(seconds: 5)));
+        String errorMsg = data['message']?.toString() ?? 'کد اشتباه است';
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errorMsg), duration: const Duration(seconds: 5)));
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('خطا: ${e.toString()}')));
@@ -692,7 +706,7 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
             padding: const EdgeInsets.all(24.0),
             child: Column(
               children: [
-                TextField(controller: _phoneController, style: const TextStyle(color: Colors.white), keyboardType: TextInputType.phone, decoration: const InputDecoration(labelText: 'شماره تلفن با 0')),
+                TextField(controller: _phoneController, style: const TextStyle(color: Colors.white), keyboardType: TextInputType.phone, decoration: const InputDecoration(labelText: 'شماره تلفن با 0 (مثال: 09123456789)')),
                 if (_isOtpSent) ...[
                   const SizedBox(height: 16),
                   TextField(controller: _codeController, style: const TextStyle(color: Colors.white), keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'کد تایید')),
@@ -998,6 +1012,125 @@ class _TasksScreenState extends State<TasksScreen> {
                 ),
         ),
       ),
+    );
+  }
+}
+
+// ==================== ۹. صفحه مدیریت اشتراک‌ها ====================
+class SubscriptionScreen extends StatefulWidget {
+  const SubscriptionScreen({super.key});
+  @override
+  State<SubscriptionScreen> createState() => _SubscriptionScreenState();
+}
+
+class _SubscriptionScreenState extends State<SubscriptionScreen> {
+  final _userController = TextEditingController();
+  final _passController = TextEditingController();
+  final _daysController = TextEditingController();
+  final _maxAccountsController = TextEditingController(text: "1");
+  bool _isLoading = false;
+
+  Future<void> _createSubscription() async {
+    if (_userController.text.isEmpty || _passController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('نام کاربری و رمز عبور الزامی است')));
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    try {
+      final res = await http.post(
+        Uri.parse('$SERVER_URL/api/subscription/create'),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({
+          "username": _userController.text.trim(),
+          "password": _passController.text.trim(),
+          "days": _daysController.text.trim(),
+          "max_accounts": int.parse(_maxAccountsController.text.trim()),
+        }),
+      ).timeout(const Duration(seconds: 10));
+      
+      final data = jsonDecode(utf8.decode(res.bodyBytes));
+      if (data['status'] == 'success') {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('اشتراک با موفقیت ساخته شد')));
+        Navigator.pop(context); 
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(data['message'] ?? 'خطا')));
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('خطا: ${e.toString()}')));
+    }
+    setState(() => _isLoading = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('مدیریت اشتراک‌ها'),
+        leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => Navigator.pop(context)),
+      ),
+      body: CustomBackground(
+        child: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: const Color(0xFF0A100D).withOpacity(0.95),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFF00FFAA).withOpacity(0.3), width: 1),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Center(child: Text('ایجاد اشتراک جدید', style: TextStyle(color: Colors.cyanAccent, fontSize: 18, fontWeight: FontWeight.bold))),
+                  const SizedBox(height: 24),
+                  _buildLabel('نام کاربری'),
+                  TextField(controller: _userController, style: const TextStyle(color: Colors.white), decoration: _buildInputDecoration()),
+                  const SizedBox(height: 16),
+                  _buildLabel('رمز عبور'),
+                  TextField(controller: _passController, style: const TextStyle(color: Colors.white), decoration: _buildInputDecoration()),
+                  const SizedBox(height: 16),
+                  _buildLabel('مدت اعتبار (روز) - خالی = نامحدود'),
+                  TextField(controller: _daysController, keyboardType: TextInputType.number, style: const TextStyle(color: Colors.white), decoration: _buildInputDecoration(hint: 'مثلا 30')),
+                  const SizedBox(height: 16),
+                  _buildLabel('حداکثر اکانت'),
+                  TextField(controller: _maxAccountsController, keyboardType: TextInputType.number, style: const TextStyle(color: Colors.white), decoration: _buildInputDecoration(hint: '1')),
+                  const SizedBox(height: 30),
+                  SizedBox(
+                    width: double.infinity, height: 50,
+                    child: InkWell(
+                      onTap: _isLoading ? null : _createSubscription,
+                      borderRadius: BorderRadius.circular(12),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(colors: [Color(0xFF00FFAA), Color(0xFF00BFFF)], begin: Alignment.centerRight, end: Alignment.centerLeft),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Center(
+                          child: _isLoading ? const CircularProgressIndicator(color: Colors.black) : const Text('ایجاد اشتراک', style: TextStyle(color: Colors.black, fontSize: 16, fontWeight: FontWeight.bold)),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLabel(String text) => Padding(padding: const EdgeInsets.only(bottom: 8.0), child: Text(text, style: const TextStyle(color: Colors.grey, fontSize: 13)));
+  
+  InputDecoration _buildInputDecoration({String? hint}) {
+    return InputDecoration(
+      hintText: hint, hintStyle: const TextStyle(color: Colors.grey),
+      filled: true, fillColor: const Color(0xFF07120A),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: const Color(0xFF00FFAA).withOpacity(0.3))),
+      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFF00FFAA))),
     );
   }
 }
